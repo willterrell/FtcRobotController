@@ -24,6 +24,10 @@ public class HardwareHandler {
     public HardwareHandler(HardwareMap hardwareMap) {
         this.hardwareMap = hardwareMap;
         // Motor initiations here
+        leftFront = hardwareMap.dcMotor.get("leftFront");
+        leftRear = hardwareMap.dcMotor.get("leftRear");
+        rightFront = hardwareMap.dcMotor.get("rightFront");
+        rightRear = hardwareMap.dcMotor.get("rightRear");
 
         // imu shit here, supposedly we need to calibrate it
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
@@ -40,8 +44,8 @@ public class HardwareHandler {
         assert(imu.isSystemCalibrated()): "Calibrate the IMU";
     }
 
-    public void onStart() { // should be called on the start of the opmode
-        imu.startAccelerationIntegration(new Position(), new Velocity(), 10); // example had it with 1000ms?
+    public void initIMU(Position currPosition) { // should be called on the start of the opmode
+        imu.startAccelerationIntegration(currPosition, new Velocity(), 10); // example had it with 1000ms?
     }
 
     public void runRamp() { // activates the ramp at a constant speed
@@ -53,7 +57,9 @@ public class HardwareHandler {
     }
 
     public Position normalize(Position reference, Position transform, double angle) { // converts a transform from the perspective of angle
-        assert(reference.unit.equals(transform.unit)): "reference and transform must have the same units";
+        if (!reference.unit.equals(transform.unit)) { // convert to same units
+            reference = reference.toUnit(transform.unit);
+        }
         Position diff = new Position(reference.unit, transform.x-reference.x, transform.y-reference.y, transform.x-reference.z, 0);
         diff = rotateTransform(diff, 90 - angle);
         return diff;
@@ -72,7 +78,9 @@ public class HardwareHandler {
     public void autoTankMove(Position curr, double currAngle, Position target, double targetAngle) { // moves with tank drive; if we use tank tracks, remove strafe
         // this will work if move uses encoders
         // TODO convert this to a state
-        assert (curr.unit.equals(target.unit)) : "Curr and Target must same units";
+        if (!curr.unit.equals(target.unit)) { // convert to same units
+            target = target.toUnit(curr.unit);
+        }
         Position diff = normalize(curr, target, currAngle); // alter diff transform such that the robot is looking in the positive y direction
         double firstAngle = Math.atan(diff.y / diff.x);
         moveWithEncoder(0, firstAngle);
