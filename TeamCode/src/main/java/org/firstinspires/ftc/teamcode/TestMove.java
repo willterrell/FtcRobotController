@@ -23,5 +23,7 @@ public class TestMove extends OpMode {
         if (!currState.getClass().equals(PlaceholderState.class)) {
             currState.run();
         }
+        telemetry.addData("Position:", hardwareHandler.getIMUPosition());
+        telemetry.addData("Rotation:", hardwareHandler.getIMUZAngle());
     }
 }

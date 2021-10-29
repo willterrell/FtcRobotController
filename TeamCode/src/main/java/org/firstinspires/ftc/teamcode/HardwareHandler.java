@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -28,6 +29,9 @@ public class HardwareHandler {
         leftRear = hardwareMap.dcMotor.get("leftRear");
         rightFront = hardwareMap.dcMotor.get("rightFront");
         rightRear = hardwareMap.dcMotor.get("rightRear");
+
+        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftRear.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // imu shit here, supposedly we need to calibrate it
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
@@ -107,5 +111,9 @@ public class HardwareHandler {
 
     public Position getIMUPosition() {
         return imu.getPosition(); // maybe do some transform on this so its oriented with y going forward and x sideways
+    }
+
+    public double[] getSensorBoolean() { // should return in order left-most to right-most
+        return null;
     }
 }
