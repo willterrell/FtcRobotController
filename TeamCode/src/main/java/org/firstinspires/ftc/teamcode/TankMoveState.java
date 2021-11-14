@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 
 public class TankMoveState extends AbState {
-    private AbState nextState;
     private HardwareHandler hardwareHandler;
     private Position target;
     private Position curr;
@@ -16,9 +15,8 @@ public class TankMoveState extends AbState {
     private final double Speed = 0.3;
 
 
-    public TankMoveState(String name, AbState nextState, HardwareHandler hardwareHandler, Position target, double targetAngle) {
-        super(name);
-        this.nextState = nextState;
+    public TankMoveState(String name, HardwareHandler hardwareHandler, Position target, double targetAngle) {
+        super(name, "next");
         this.hardwareHandler = hardwareHandler;
         this.target = target;
         this.targetAngle = targetAngle;
@@ -38,10 +36,10 @@ public class TankMoveState extends AbState {
     }
 
     @Override
-    public AbState next() {
+    public AbState nextImpl() {
         Position diff = hardwareHandler.normalize(curr, target, currAngle);
         if (distance(diff.x, diff.y) < DPrecision && Math.abs(targetAngle - currAngle) < RPrecision) { // we're not caring for rotation rigth now
-            return nextState;
+            return nextStateMap.get("next"); // user must use this key
         }
         return this;
     }

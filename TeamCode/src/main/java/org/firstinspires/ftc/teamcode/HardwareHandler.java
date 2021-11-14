@@ -6,9 +6,11 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
@@ -20,7 +22,6 @@ public class HardwareHandler {
     private DcMotor leftRear;
     private DcMotor rightRear;
     private BNO055IMU imu;
-
 
     public HardwareHandler(HardwareMap hardwareMap) {
         this.hardwareMap = hardwareMap;
@@ -40,16 +41,16 @@ public class HardwareHandler {
         parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
         parameters.loggingEnabled      = true;
         parameters.loggingTag          = "IMU";
-        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+        parameters.accelerationIntegrationAlgorithm = new SimpsonIntegrator(1000);
 
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         imu.initialize(parameters);
 
-        assert(imu.isSystemCalibrated()): "Calibrate the IMU";
+        //assert(imu.isSystemCalibrated()): "Calibrate the IMU";
     }
 
-    public void initIMU(Position currPosition) { // should be called on the start of the opmode
-        imu.startAccelerationIntegration(currPosition, new Velocity(), 10); // example had it with 1000ms?
+    public void initIMU(Position currPosition, Velocity currVelocity) { // should be called on the start of the opmode
+        imu.startAccelerationIntegration(currPosition, currVelocity, 1000); // example had it with 1000ms?
     }
 
     public void runRamp() { // activates the ramp at a constant speed
@@ -96,13 +97,18 @@ public class HardwareHandler {
 
     public void move(double d, double r, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
         assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
-        assert (!(d == 0 && r == 0)): "d and r can't both be zero";
         // add motor type assertion or change
         double total = Math.abs(d) + Math.abs(r);
-        leftFront.setPower((d-r)/total*speed);
-        leftRear.setPower((d-r)/total*speed);
-        rightFront.setPower((d+r)/total*speed);
-        rightRear.setPower((d+r)/total*speed);
+        if (d == 0 && r == 0) {
+            leftFront.setPower(0);
+            leftRear.setPower(0);
+            rightFront.setPower(0);
+            rightRear.setPower(0);
+        }
+        leftFront.setPower((d+r)/total*speed);
+        leftRear.setPower((d+r)/total*speed);
+        rightFront.setPower((d-r)/total*speed);
+        rightRear.setPower((d-r)/total*speed);
     }
 
     public double getIMUZAngle() { // gives current position as a double list formatted [x, y, r]
@@ -110,10 +116,19 @@ public class HardwareHandler {
     }
 
     public Position getIMUPosition() {
-        return imu.getPosition(); // maybe do some transform on this so its oriented with y going forward and x sideways
+        Position pos = imu.getPosition();
+        pos.toUnit(DistanceUnit.METER);
+        return pos;
+        // maybe do some transform on this so its oriented with y going forward and x sideways
     }
 
     public double[] getSensorBoolean() { // should return in order left-most to right-most
         return null;
+    }
+
+    public Acceleration getIMUAccel() {
+        Acceleration accel = imu.getLinearAcceleration();
+        accel.toUnit(DistanceUnit.METER);
+        return accel;
     }
 }

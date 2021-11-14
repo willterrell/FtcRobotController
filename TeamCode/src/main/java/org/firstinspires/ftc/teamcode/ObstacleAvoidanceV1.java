@@ -18,7 +18,7 @@ public class ObstacleAvoidanceV1 extends AbState {
     }
 
     @Override
-    public AbState next() {
+    public AbState nextImpl() {
         if (inFront || onTheSides) { // run must be run before this
             return this;
         }

@@ -1,0 +1,8 @@
+{
+  "MoveToCarousel": {
+    "next": "MoveToParking"
+  },
+  "MoveToParking": {
+    "next": "PlaceHolder"
+  }
+}

@@ -11,7 +11,7 @@ public class PlaceholderState extends AbState { // this state does nothing
     }
 
     @Override
-    public AbState next() {
+    public AbState nextImpl() {
         return this;
     }
 
