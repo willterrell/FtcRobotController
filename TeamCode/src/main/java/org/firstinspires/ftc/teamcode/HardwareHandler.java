@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -11,9 +10,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
+
+import java.util.HashMap;
 
 public class HardwareHandler {
     private HardwareMap hardwareMap;
@@ -22,6 +22,13 @@ public class HardwareHandler {
     private DcMotor leftRear;
     private DcMotor rightRear;
     private BNO055IMU imu;
+    private SimpsonIntegrator integrator;
+    private final int msPollInterval = 100;
+
+    private final double wheelDiameter = 0.1; // in meters
+    private final double width = 0.31;
+    private final double length = 0.19;
+    private final int ticksPerRotation = 7200;
 
     public HardwareHandler(HardwareMap hardwareMap) {
         this.hardwareMap = hardwareMap;
@@ -35,13 +42,14 @@ public class HardwareHandler {
         leftRear.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // imu shit here, supposedly we need to calibrate it
+        integrator = new SimpsonIntegrator(msPollInterval);
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
         parameters.loggingEnabled      = true;
         parameters.loggingTag          = "IMU";
-        parameters.accelerationIntegrationAlgorithm = new SimpsonIntegrator(1000);
+        parameters.accelerationIntegrationAlgorithm = integrator;
 
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         imu.initialize(parameters);
@@ -50,7 +58,7 @@ public class HardwareHandler {
     }
 
     public void initIMU(Position currPosition, Velocity currVelocity) { // should be called on the start of the opmode
-        imu.startAccelerationIntegration(currPosition, currVelocity, 1000); // example had it with 1000ms?
+        imu.startAccelerationIntegration(currPosition, currVelocity, msPollInterval); // example had it with 1000ms?
     }
 
     public void runRamp() { // activates the ramp at a constant speed
@@ -130,5 +138,50 @@ public class HardwareHandler {
         Acceleration accel = imu.getLinearAcceleration();
         accel.toUnit(DistanceUnit.METER);
         return accel;
+    }
+
+    public HashMap<String, Object> getIMUTelemetry() {
+        return integrator.getTelemetry();
+    }
+
+    public boolean isBusy() {
+        return leftFront.isBusy() ||
+                rightFront.isBusy() ||
+                leftRear.isBusy() ||
+                rightRear.isBusy();
+    }
+
+    public void setMode(DcMotor.RunMode mode) {
+        leftFront.setMode(mode);
+        rightFront.setMode(mode);
+        leftRear.setMode(mode);
+        rightRear.setMode(mode);
+    }
+
+    public void setTargets(int tickLF, int tickRF, int tickLR, int tickRR) {
+        leftFront.setTargetPosition(tickLF);
+        rightFront.setTargetPosition(tickRF);
+        leftRear.setTargetPosition(tickLR);
+        rightRear.setTargetPosition(tickRR);
+    }
+
+    public void setForwardTargets(int ticks) {
+        setTargets(ticks, ticks, ticks, ticks);
+    }
+
+    public void setRotateTargets(int ticks) { // CCW is +
+        setTargets(ticks, -1 * ticks, ticks, -1 * ticks);
+    }
+
+    public void forwardWithEncoders(double distance) { // only needs to be run once
+        int ticks = (int) (distance / ticksPerRotation * Math.PI * wheelDiameter);
+        setForwardTargets(ticks);
+    }
+
+    public void rotateWithEncoders(double degrees) {
+        double metersPerDegree = Math.PI * Math.sqrt(length*length + width*width) / 360;
+        double metersPerTick = ticksPerRotation * Math.PI * wheelDiameter; // ticks * mpt / mpd = degrees
+        int ticks = (int) (degrees / metersPerTick * metersPerDegree);
+        setRotateTargets(ticks);
     }
 }

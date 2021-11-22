@@ -71,16 +71,14 @@ public class SimpsonIntegrator implements BNO055IMU.AccelerationIntegrator { // 
 
     @Override
     public void update(Acceleration linearAcceleration) {
-        if (accels.size() == 4) { // pops first element
-            accels.remove(0);
-        }
         accels.add(linearAcceleration); // if we only have one accel reading, can't do anything
+        if (accels.size() > 4) accels.remove(0);
         if (accels.size() == 2) { // if we have two accel readings, use trapezoid
             Acceleration a0 = accels.get(0), a1 = accels.get(1);
             double vx = trapezoid(a0.xAccel, a1.xAccel); // this approximates the integral from the time of a0 to a1
             double vy = trapezoid(a0.yAccel, a1.yAccel);
             double vz = trapezoid(a0.zAccel, a1.zAccel);
-            Velocity v0 = vels.get(0), v1 = new Velocity(a0.unit, vx, vy, vz, 0); // remember to add to v0
+            Velocity v0 = vels.get(0), v1 = new Velocity(a0.unit, vx + v0.xVeloc, vy + v0.yVeloc, vz + v0.zVeloc, 0); // remember to add to v0
             vels.add(v1);
             double xx = trapezoid(v0.xVeloc, v1.xVeloc); // we have to double integrate
             double xy = trapezoid(v0.yVeloc, v1.yVeloc);
@@ -93,7 +91,8 @@ public class SimpsonIntegrator implements BNO055IMU.AccelerationIntegrator { // 
             double vx = simpsons13(a0.xAccel, a1.xAccel, a2.xAccel);
             double vy = simpsons13(a0.yAccel, a1.yAccel, a2.yAccel);
             double vz = simpsons13(a0.zAccel, a1.zAccel, a2.zAccel);
-            Velocity v0 = vels.get(0), v1 = vels.get(1), v2 = new Velocity(a0.unit, vx, vy, vz, 0);
+            Velocity v0 = vels.get(0), v1 = vels.get(1), v2 = new Velocity(a0.unit, vx + v0.xVeloc, vy + v0.yVeloc, vz + v0.zVeloc, 0);
+            vels.add(v2);
             double xx = simpsons13(v0.xVeloc, v1.xVeloc, v2.xVeloc);
             double xy = simpsons13(v0.yVeloc, v1.yVeloc, v2.yVeloc);
             double xz = simpsons13(v0.zVeloc, v1.zVeloc, v2.zVeloc);
@@ -105,14 +104,23 @@ public class SimpsonIntegrator implements BNO055IMU.AccelerationIntegrator { // 
             double vx = simpsons38(a0.xAccel, a1.xAccel, a2.xAccel, a3.xAccel);
             double vy = simpsons38(a0.yAccel, a1.yAccel, a2.yAccel, a3.yAccel);
             double vz = simpsons38(a0.zAccel, a1.zAccel, a2.zAccel, a3.zAccel);
-            vels.remove(0);
-            Velocity v0 = vels.get(0), v1 = vels.get(1), v2 = vels.get(2), v3 = new Velocity(a0.unit, vx, vy, vz, 0);
+            if (vels.size() == 4) vels.remove(0);
+            Velocity v0 = vels.get(0), v1 = vels.get(1), v2 = vels.get(2), v3 = new Velocity(a0.unit, vx + v0.xVeloc, vy + v0.yVeloc, vz + v0.zVeloc, 0);
+            vels.add(v3);
             double xx = simpsons38(v0.xVeloc, v1.xVeloc, v2.xVeloc, v3.xVeloc);
             double xy = simpsons38(v0.yVeloc, v1.yVeloc, v2.yVeloc, v3.yVeloc);
             double xz = simpsons38(v0.zVeloc, v1.zVeloc, v2.zVeloc, v3.zVeloc);
-            poss.remove(0);
+            if (poss.size() == 4) poss.remove(0);
             Position x0 = poss.get(0), newPos = new Position(v0.unit, xx + x0.x, xy + x0.y, xz + x0.z, 0);
             poss.add(newPos);
         }
+    }
+
+    public HashMap<String, Object> getTelemetry() {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("accels", accels);
+        map.put("vels", vels);
+        map.put("poss", poss);
+        return map;
     }
 }

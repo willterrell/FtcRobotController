@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import java.util.HashMap;
+
 public class PlaceholderState extends AbState { // this state does nothing
     public PlaceholderState() {
         super("Placeholder");
@@ -11,7 +13,7 @@ public class PlaceholderState extends AbState { // this state does nothing
     }
 
     @Override
-    public AbState nextImpl() {
+    public AbState next(HashMap<String, AbState> nextStateMap) {
         return this;
     }
 

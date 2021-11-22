@@ -1,15 +1,15 @@
 package org.firstinspires.ftc.teamcode;
 
+import java.util.HashMap;
+
 public class ObstacleAvoidanceV1 extends AbState {
     private HardwareHandler hardwareHandler;
-    private AbState nextState;
     private double prevLeft, prevRight;
     private final double MinDistance = 1, SideDistance = 0.1, Speed = 0.3; // in units meters
     private boolean inFront, onTheSides;
-    public ObstacleAvoidanceV1(String name, HardwareHandler hardwareHandler, AbState nextState) {
-        super(name);
+    public ObstacleAvoidanceV1(String name, HardwareHandler hardwareHandler) {
+        super(name, "next");
         this.hardwareHandler = hardwareHandler;
-        this.nextState = nextState;
     }
 
     @Override
@@ -18,11 +18,11 @@ public class ObstacleAvoidanceV1 extends AbState {
     }
 
     @Override
-    public AbState nextImpl() {
+    public AbState next(HashMap<String, AbState> nextStateMap) {
         if (inFront || onTheSides) { // run must be run before this
             return this;
         }
-        return nextState;
+        return nextStateMap.get("next");
     }
 
     @Override

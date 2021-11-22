@@ -7,7 +7,7 @@ import java.util.Set;
 public abstract class AbState { // this is basically a decorator pattern
     protected String name;
     protected AbState currentState = this;
-    protected HashMap<String, AbState> nextStateMap;
+    private HashMap<String, AbState> nextStateMap;
 
     public AbState(String name, String ...nextStateName){
         this.name = name;
@@ -30,10 +30,10 @@ public abstract class AbState { // this is basically a decorator pattern
         for (String nextName : nextStateMap.keySet()) {
             assert (nextStateMap.get(nextName) != null): String.format(Locale.ENGLISH, "In %s, next state, %s, is not defined", name, nextName);
         }
-        return nextImpl();
+        return next(nextStateMap);
     }
 
-    public abstract AbState nextImpl(); // returns next state to be run and also end behavior
+    public abstract AbState next(HashMap<String, AbState> nextStateMap); // returns next state to be run and also end behavior
 
     public abstract void run();
 
@@ -45,5 +45,9 @@ public abstract class AbState { // this is basically a decorator pattern
 
     public Set<String> getNextStateKeys() {
         return nextStateMap.keySet();
+    }
+
+    public AbState getNextState(String name) {
+        return nextStateMap.get(name);
     }
 }

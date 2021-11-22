@@ -16,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Locale;
 
 @TeleOp(name="TestTeleOp", group="TeleOp")
@@ -43,9 +44,13 @@ public class TestTeleOp extends LinearOpMode {
 
             Position curPos = hardwareHandler.getIMUPosition();
 
+            HashMap<String, Object> imuTeleMap = hardwareHandler.getIMUTelemetry();
             telemetry.addData("position", curPos);
             telemetry.addData("rotation:", hardwareHandler.getIMUZAngle());
             telemetry.addData("accel:", hardwareHandler.getIMUAccel());
+            telemetry.addData("positions: ", imuTeleMap.get("poss"));
+            telemetry.addData("velocities: ", imuTeleMap.get("vels"));
+            telemetry.addData("accelerations: ", imuTeleMap.get("accels"));
             telemetry.update();
 
             if (gamepad1.a) {

@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 
+import java.util.HashMap;
+
 public class TankMoveState extends AbState {
     private HardwareHandler hardwareHandler;
     private Position target;
@@ -36,7 +38,7 @@ public class TankMoveState extends AbState {
     }
 
     @Override
-    public AbState nextImpl() {
+    public AbState next(HashMap<String, AbState> nextStateMap) {
         Position diff = hardwareHandler.normalize(curr, target, currAngle);
         if (distance(diff.x, diff.y) < DPrecision && Math.abs(targetAngle - currAngle) < RPrecision) { // we're not caring for rotation rigth now
             return nextStateMap.get("next"); // user must use this key
