@@ -15,6 +15,6 @@ public class BasicTeleOp extends OpMode {
     @Override
     public void loop() {
         double speed = (Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2))/2;
-        hardwareHandler.move(gamepad1.left_stick_y, gamepad1.left_stick_x, speed);
+        hardwareHandler.move(gamepad1.left_stick_y, gamepad1.left_stick_x, 0, speed);
     }
 }

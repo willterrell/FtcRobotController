@@ -4,7 +4,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Position;
 
 import java.util.HashMap;
 
-public class TankMoveState extends AbState {
+public class MoveWithIMUState extends AbState {
     private HardwareHandler hardwareHandler;
     private Position target;
     private Position curr;
@@ -17,7 +17,7 @@ public class TankMoveState extends AbState {
     private final double Speed = 0.3;
 
 
-    public TankMoveState(String name, HardwareHandler hardwareHandler, Position target, double targetAngle) {
+    public MoveWithIMUState(String name, HardwareHandler hardwareHandler, Position target, double targetAngle) {
         super(name, "next");
         this.hardwareHandler = hardwareHandler;
         this.target = target;
@@ -56,13 +56,13 @@ public class TankMoveState extends AbState {
             angleToTarget = Math.atan(diff.y/diff.x);
         }
         if (Math.abs(angleToTarget) > RPrecision) { // if the robot is not facing the target
-            hardwareHandler.move(0, Math.signum(angleToTarget), Speed);
+            hardwareHandler.move(0, Math.signum(angleToTarget), 0, Speed);
         }
         else if (diff.y > DPrecision) { // once we're facing in the right direction, move towards target
-            hardwareHandler.move(Math.signum(diff.y), 0, Speed);
+            hardwareHandler.move(Math.signum(diff.y), 0, 0, Speed);
         }
         else if (currAngle != targetAngle) { // once we're at the spot we need to be, orient ourselves to the direction of target
-            hardwareHandler.move(0, Math.signum(targetAngle - currAngle), Speed);
+            hardwareHandler.move(0, Math.signum(targetAngle - currAngle), 0, Speed);
         }
     }
 }

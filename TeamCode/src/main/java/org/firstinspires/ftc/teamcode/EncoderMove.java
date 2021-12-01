@@ -9,11 +9,13 @@ public class EncoderMove extends AbState {
     private Position pos;
     private double angle;
     private AbState currState;
-    public EncoderMove(String name, HardwareHandler hardwareHandler, Position pos, double angle) {
+    private  double speed;
+    public EncoderMove(String name, HardwareHandler hardwareHandler, Position pos, double angle, double speed) {
         super(name, "next");
         this.hardwareHandler = hardwareHandler;
         this.pos = pos;
         this.angle = angle;
+        this.speed = speed;
     }
 
     public double distance(double x, double y) {
@@ -25,9 +27,9 @@ public class EncoderMove extends AbState {
         double angleTo = Math.atan(pos.y/ pos.x);
         double distanceTo = distance(pos.x, pos.y);
         angle -= angleTo;
-        EncoderRotateState rotateTo = new EncoderRotateState("RotateTo", angleTo, hardwareHandler);
-        EncoderForwardState moveTo = new EncoderForwardState("MoveTo", distanceTo, hardwareHandler);
-        EncoderRotateState finalRotate = new EncoderRotateState("FinalRotate", angle, hardwareHandler);
+        EncoderRotateState rotateTo = new EncoderRotateState("RotateTo", angleTo, hardwareHandler, speed);
+        EncoderForwardState moveTo = new EncoderForwardState("MoveTo", hardwareHandler, distanceTo, speed);
+        EncoderRotateState finalRotate = new EncoderRotateState("FinalRotate", angle, hardwareHandler, speed);
         rotateTo.putNextState("next", moveTo);
         moveTo.putNextState("next", finalRotate);
         finalRotate.putNextState("next", super.getNextState("next"));

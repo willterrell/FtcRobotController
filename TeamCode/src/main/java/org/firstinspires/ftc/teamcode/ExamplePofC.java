@@ -24,5 +24,7 @@ public class ExamplePofC extends OpMode {
         }
         telemetry.addData("gamepad1 left-trigger: ", gamepad1.left_trigger);
         telemetry.update();
+
+
     }
 }

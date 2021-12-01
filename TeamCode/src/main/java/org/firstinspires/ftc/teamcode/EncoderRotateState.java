@@ -1,14 +1,18 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
+
 import java.util.HashMap;
 
 public class EncoderRotateState extends AbState {
     private double degrees;
     private HardwareHandler hardwareHandler;
-    public EncoderRotateState(String name, double degrees, HardwareHandler hardwareHandler) {
+    private double speed;
+    public EncoderRotateState(String name, double degrees, HardwareHandler hardwareHandler, double speed) {
         super(name, "next");
         this.degrees = degrees;
         this.hardwareHandler = hardwareHandler;
+        this.speed = speed;
     }
 
     @Override
@@ -23,6 +27,9 @@ public class EncoderRotateState extends AbState {
 
     @Override
     public void run() {
+        hardwareHandler.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         hardwareHandler.rotateWithEncoders(degrees);
+        hardwareHandler.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        hardwareHandler.setPowers(Math.signum(degrees) * -1 * speed, Math.signum(degrees) * -1 * speed, Math.signum(degrees) * speed, Math.signum(degrees) * speed);
     }
 }

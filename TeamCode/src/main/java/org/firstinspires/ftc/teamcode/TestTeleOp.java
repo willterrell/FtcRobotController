@@ -40,7 +40,7 @@ public class TestTeleOp extends LinearOpMode {
             telemetry.addData("initialized:",true);
 
             double speed = (Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2))/2;
-            hardwareHandler.move(gamepad1.left_stick_y, gamepad1.left_stick_x, speed);
+            hardwareHandler.move(gamepad1.left_stick_y, gamepad1.left_stick_x, 0, speed);
 
             Position curPos = hardwareHandler.getIMUPosition();
 
@@ -59,6 +59,7 @@ public class TestTeleOp extends LinearOpMode {
                 String serial = String.format(Locale.ENGLISH, "{\"x\":%f,\"y\":%f,\"z\":%f}", curPos.x, curPos.y, curPos.z);
                 ReadWriteFile.writeFile(file, serial);
             }
+
         }
     }
 }

@@ -8,7 +8,7 @@ public abstract class AbState { // this is basically a decorator pattern
     protected String name;
     protected AbState currentState = this;
     private HashMap<String, AbState> nextStateMap;
-
+    private AbState prevState;
     public AbState(String name, String ...nextStateName){
         this.name = name;
         for (String stateName : nextStateName) {
@@ -30,7 +30,12 @@ public abstract class AbState { // this is basically a decorator pattern
         for (String nextName : nextStateMap.keySet()) {
             assert (nextStateMap.get(nextName) != null): String.format(Locale.ENGLISH, "In %s, next state, %s, is not defined", name, nextName);
         }
-        return next(nextStateMap);
+        AbState nextState = next(nextStateMap);
+        if (prevState != null && !prevState.equals(nextState)) {
+            nextState.init();
+        }
+        else prevState = nextState;
+        return nextState;
     }
 
     public abstract AbState next(HashMap<String, AbState> nextStateMap); // returns next state to be run and also end behavior

@@ -40,19 +40,19 @@ public class ObstacleAvoidanceV1 extends AbState {
         }
 
         if (incrLeft && incrRight) { // think about the order of this
-            hardwareHandler.move(-1, 0, Speed); // go back if we're going into a corner
+            hardwareHandler.move(-1, 0, 0, Speed); // go back if we're going into a corner
         }
         else if (incrLeft) {
-            hardwareHandler.move(0, -1, Speed); // turn right if we're going into a wall on the left
+            hardwareHandler.move(0, -1, 0, Speed); // turn right if we're going into a wall on the left
         }
         else if (incrRight) {
-            hardwareHandler.move(0, 1, Speed); // turn left if we're going into a wall on the right
+            hardwareHandler.move(0, 1, 0, Speed); // turn left if we're going into a wall on the right
         }
         else { // prefers to avoid moving into a wall on the sides than in front
             if (left > right) { // if the path is more open on the left, turn towards there until it'ss open
-                hardwareHandler.move(0, 1, Speed); // prefers left
+                hardwareHandler.move(0, 1, 0, Speed); // prefers left
             } else { // if the path is more open on the right
-                hardwareHandler.move(0, -1, Speed);
+                hardwareHandler.move(0, -1, 0, Speed);
             }
         }
         prevLeft = left;

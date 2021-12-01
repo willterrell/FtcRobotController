@@ -16,19 +16,27 @@ import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import java.util.HashMap;
 
 public class HardwareHandler {
-    private HardwareMap hardwareMap;
-    private DcMotor leftFront;
-    private DcMotor rightFront;
-    private DcMotor leftRear;
-    private DcMotor rightRear;
-    private BNO055IMU imu;
-    private SimpsonIntegrator integrator;
+    private final HardwareMap hardwareMap;
+    private final DcMotor leftFront;
+    private final DcMotor rightFront;
+    private final DcMotor leftRear;
+    private final DcMotor rightRear;
+    private final DcMotor linearSlide1;
+    private final DcMotor linearSlide2;
+    private final DcMotor carousel;
+    private final DcMotor input;
+    private final BNO055IMU imu;
+    private final SimpsonIntegrator integrator;
     private final int msPollInterval = 100;
 
     private final double wheelDiameter = 0.1; // in meters
     private final double width = 0.31;
     private final double length = 0.19;
     private final int ticksPerRotation = 7200;
+    private int linearSlidePos = 0;
+
+    private final PIDController linearSlidePID1, linearSlidePID2;
+    private final double lSKP = 0.1, lSKI = 0.0001, lSKD = 0; // coefficients for linearSlidePID 1 and 2
 
     public HardwareHandler(HardwareMap hardwareMap) {
         this.hardwareMap = hardwareMap;
@@ -37,6 +45,19 @@ public class HardwareHandler {
         leftRear = hardwareMap.dcMotor.get("leftRear");
         rightFront = hardwareMap.dcMotor.get("rightFront");
         rightRear = hardwareMap.dcMotor.get("rightRear");
+        linearSlide1 = hardwareMap.dcMotor.get("linearSlide1");
+        linearSlide2 = hardwareMap.dcMotor.get("linearSlide2");
+        carousel = hardwareMap.dcMotor.get("carousel");
+        input = hardwareMap.dcMotor.get("input");
+
+        leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        linearSlide1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        linearSlide2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        carousel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        input.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
         leftRear.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -53,6 +74,9 @@ public class HardwareHandler {
 
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         imu.initialize(parameters);
+
+        linearSlidePID1 = new PIDController(lSKP, lSKI, lSKD);
+        linearSlidePID2 = new PIDController(lSKP, lSKI, lSKD);
 
         //assert(imu.isSystemCalibrated()): "Calibrate the IMU";
     }
@@ -103,7 +127,14 @@ public class HardwareHandler {
         moveWithEncoder(0, finalAngle);
     }
 
-    public void move(double d, double r, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
+    public void setPowers(double lf, double lr, double rf, double rr) {
+        leftFront.setPower(lf);
+        leftRear.setPower(lr);
+        rightFront.setPower(rf);
+        rightRear.setPower(rr);
+    }
+
+    public void move(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
         assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
         // add motor type assertion or change
         double total = Math.abs(d) + Math.abs(r);
@@ -113,10 +144,18 @@ public class HardwareHandler {
             rightFront.setPower(0);
             rightRear.setPower(0);
         }
-        leftFront.setPower((d+r)/total*speed);
-        leftRear.setPower((d+r)/total*speed);
-        rightFront.setPower((d-r)/total*speed);
-        rightRear.setPower((d-r)/total*speed);
+        leftFront.setPower((d+r+s)/total*speed);
+        leftRear.setPower((d+r-s)/total*speed);
+        rightFront.setPower((d-r+s)/total*speed);
+        rightRear.setPower((d-r-s)/total*speed);
+    }
+
+    public void moveCarousel(double power) { // in is positive
+        carousel.setPower(power);
+    }
+
+    public void moveInputWheel(double power) {
+        input.setPower(power);
     }
 
     public double getIMUZAngle() { // gives current position as a double list formatted [x, y, r]
@@ -183,5 +222,18 @@ public class HardwareHandler {
         double metersPerTick = ticksPerRotation * Math.PI * wheelDiameter; // ticks * mpt / mpd = degrees
         int ticks = (int) (degrees / metersPerTick * metersPerDegree);
         setRotateTargets(ticks);
+    }
+
+    public void moveSlide(int ticks, double dt) {
+        int currPos1 = linearSlide1.getCurrentPosition();
+        int currPos2 = linearSlide2.getCurrentPosition();
+
+        linearSlidePos += ticks;
+
+        double input1 = linearSlidePID1.getInput(linearSlidePos-currPos1, dt);
+        double input2 = linearSlidePID2.getInput(linearSlidePos-currPos2, dt);
+
+        linearSlide1.setPower(input1);
+        linearSlide2.setPower(input2);
     }
 }
