@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -25,18 +26,21 @@ public class HardwareHandler {
     private final DcMotor linearSlide2;
     private final DcMotor carousel;
     private final DcMotor input;
-    private final BNO055IMU imu;
-    private final SimpsonIntegrator integrator;
+    private BNO055IMU imu;
+    private SimpsonIntegrator integrator;
     private final int msPollInterval = 100;
 
     private final double wheelDiameter = 0.1; // in meters
     private final double width = 0.31;
     private final double length = 0.19;
     private final int ticksPerRotation = 7200;
-    private int linearSlidePos = 0;
+    private int lSTargetPos = 0;
 
-    private final PIDController linearSlidePID1, linearSlidePID2;
-    private final double lSKP = 0.1, lSKI = 0.0001, lSKD = 0; // coefficients for linearSlidePID 1 and 2
+    private PIDController upLSPID, diffLSPID;
+    private double upKP = 0.0001, upKI = 0, upKD = 0, dKP = 0.0001, dKI = 0, dKD = 0; // coefficients for linearSlidePID 1 and 2
+    // it might just be better to have it only be a p controller since the target is changing
+
+    private DcMotor.RunMode currRunMode;
 
     public HardwareHandler(HardwareMap hardwareMap) {
         this.hardwareMap = hardwareMap;
@@ -48,7 +52,7 @@ public class HardwareHandler {
         linearSlide1 = hardwareMap.dcMotor.get("linearSlide1");
         linearSlide2 = hardwareMap.dcMotor.get("linearSlide2");
         carousel = hardwareMap.dcMotor.get("carousel");
-        input = hardwareMap.dcMotor.get("input");
+        input = hardwareMap.dcMotor.get("scoop");
 
         leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         leftRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -56,14 +60,19 @@ public class HardwareHandler {
         rightRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         linearSlide1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         linearSlide2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        carousel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         input.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftRear.setDirection(DcMotorSimple.Direction.REVERSE);
+        linearSlide1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        linearSlide2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
+        linearSlide1.setDirection(DcMotorSimple.Direction.REVERSE);
+        input.setDirection(DcMotorSimple.Direction.REVERSE);
+        carousel.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // imu shit here, supposedly we need to calibrate it
-        integrator = new SimpsonIntegrator(msPollInterval);
+        /*integrator = new SimpsonIntegrator(msPollInterval);
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
@@ -73,10 +82,10 @@ public class HardwareHandler {
         parameters.accelerationIntegrationAlgorithm = integrator;
 
         imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imu.initialize(parameters);
+        imu.initialize(parameters);*/
 
-        linearSlidePID1 = new PIDController(lSKP, lSKI, lSKD);
-        linearSlidePID2 = new PIDController(lSKP, lSKI, lSKD);
+        upLSPID = new PIDController(upKP, upKI, upKD);
+        diffLSPID = new PIDController(dKP, dKI, dKD);
 
         //assert(imu.isSystemCalibrated()): "Calibrate the IMU";
     }
@@ -128,6 +137,8 @@ public class HardwareHandler {
     }
 
     public void setPowers(double lf, double lr, double rf, double rr) {
+        if (currRunMode != DcMotor.RunMode.RUN_WITHOUT_ENCODER) setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         leftFront.setPower(lf);
         leftRear.setPower(lr);
         rightFront.setPower(rf);
@@ -137,6 +148,7 @@ public class HardwareHandler {
     public void move(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
         assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
         // add motor type assertion or change
+        if (currRunMode != DcMotor.RunMode.RUN_WITHOUT_ENCODER) setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         double total = Math.abs(d) + Math.abs(r);
         if (d == 0 && r == 0) {
             leftFront.setPower(0);
@@ -144,10 +156,10 @@ public class HardwareHandler {
             rightFront.setPower(0);
             rightRear.setPower(0);
         }
-        leftFront.setPower((d+r+s)/total*speed);
-        leftRear.setPower((d+r-s)/total*speed);
-        rightFront.setPower((d-r+s)/total*speed);
-        rightRear.setPower((d-r-s)/total*speed);
+        leftFront.setPower((d-r+s)/total*speed);
+        leftRear.setPower((d-r-s)/total*speed);
+        rightFront.setPower((d+r+s)/total*speed);
+        rightRear.setPower((d+r-s)/total*speed);
     }
 
     public void moveCarousel(double power) { // in is positive
@@ -195,9 +207,11 @@ public class HardwareHandler {
         rightFront.setMode(mode);
         leftRear.setMode(mode);
         rightRear.setMode(mode);
+        currRunMode = mode;
     }
 
     public void setTargets(int tickLF, int tickRF, int tickLR, int tickRR) {
+        setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftFront.setTargetPosition(tickLF);
         rightFront.setTargetPosition(tickRF);
         leftRear.setTargetPosition(tickLR);
@@ -206,10 +220,12 @@ public class HardwareHandler {
 
     public void setForwardTargets(int ticks) {
         setTargets(ticks, ticks, ticks, ticks);
+        setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
     public void setRotateTargets(int ticks) { // CCW is +
         setTargets(ticks, -1 * ticks, ticks, -1 * ticks);
+        setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
     public void forwardWithEncoders(double distance) { // only needs to be run once
@@ -224,16 +240,48 @@ public class HardwareHandler {
         setRotateTargets(ticks);
     }
 
-    public void moveSlide(int ticks, double dt) {
-        int currPos1 = linearSlide1.getCurrentPosition();
-        int currPos2 = linearSlide2.getCurrentPosition();
+    public double[] updateSlides() {
+        int avrPos = (linearSlide1.getCurrentPosition() + linearSlide2.getCurrentPosition())/2;
+        int diff = linearSlide1.getCurrentPosition() - linearSlide2.getCurrentPosition();
 
-        linearSlidePos += ticks;
+        double upInput = upLSPID.getInput(lSTargetPos - avrPos);
+        double diffInput = diffLSPID.getInput(diff);
 
-        double input1 = linearSlidePID1.getInput(linearSlidePos-currPos1, dt);
-        double input2 = linearSlidePID2.getInput(linearSlidePos-currPos2, dt);
+        double kU = 1;
+        double kDiff = 1;
 
-        linearSlide1.setPower(input1);
-        linearSlide2.setPower(input2);
+        linearSlide1.setPower(kU*upInput - kDiff*diffInput);
+        linearSlide2.setPower(kU*upInput + kDiff*diffInput);
+        return new double[]{upInput, diffInput}; // returns for telemetry
+    }
+
+    public void moveSlide(int ticks) {
+        final int maxPos = 7200 * 3;
+        int sum = lSTargetPos + ticks;
+        if (sum >= 0 && sum <= maxPos) lSTargetPos = sum;
+    }
+
+    public int getlSTargetPos(){
+        return lSTargetPos;
+    }
+
+    public void simpleSlides(double power) {
+        linearSlide1.setPower(power);
+        linearSlide2.setPower(power);
+    }
+
+    public void setUpLSPIDCoeff(double p, double i, double d) { // scales PID coefficients by parameter
+        upKP *= p;
+        upKI *= i;
+        upKD *= d;
+        upLSPID = new PIDController(upKP, upKI, upKD);
+    }
+
+    public double[] getUpLSPIDCoeff() {
+        return new double[] {upKP, upKI, upKD};
+    }
+
+    public boolean getBlockSensorDetection() { // returns whether there is a block in front of the block sensor
+        return false;
     }
 }

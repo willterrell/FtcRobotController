@@ -27,9 +27,7 @@ public class EncoderForwardState extends AbState {
 
     @Override
     public void run() {
-        hardwareHandler.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         hardwareHandler.forwardWithEncoders(meters);
-        hardwareHandler.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         hardwareHandler.setPowers(Math.signum(meters) * speed, Math.signum(meters) * speed, Math.signum(meters) * speed, Math.signum(meters) * speed);
     }
 }

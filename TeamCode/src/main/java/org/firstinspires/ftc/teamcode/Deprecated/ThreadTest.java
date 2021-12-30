@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Deprecated;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -8,9 +8,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.SimpsonIntegrator;
 
 import java.lang.reflect.Method;
 
+@Deprecated
 class Main implements Runnable {
     private SimpsonIntegrator simp;
 
@@ -25,7 +27,8 @@ class Main implements Runnable {
         simp.update(new Acceleration(DistanceUnit.CM, 1, 1, 1, 0));
     }
 }
-@TeleOp(name="compTest")
+@Deprecated
+@TeleOp(name="deprecated compTest", group="deprecated")
 public class ThreadTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {

@@ -1,7 +1,11 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Deprecated;
+
+import org.firstinspires.ftc.teamcode.AbState;
+import org.firstinspires.ftc.teamcode.HardwareHandler;
 
 import java.util.HashMap;
 
+@Deprecated
 public class ObstacleAvoidanceV1 extends AbState {
     private HardwareHandler hardwareHandler;
     private double prevLeft, prevRight;

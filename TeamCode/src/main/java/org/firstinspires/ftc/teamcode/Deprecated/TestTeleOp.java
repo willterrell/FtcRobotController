@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Deprecated;
 
 import com.google.gson.JsonSerializer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -14,12 +14,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
+import org.firstinspires.ftc.teamcode.HardwareHandler;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Locale;
 
-@TeleOp(name="TestTeleOp", group="TeleOp")
+@Deprecated
+@TeleOp(name="Deprecated TestTeleOp", group="deprecated")
 public class TestTeleOp extends LinearOpMode {
     private HardwareHandler hardwareHandler;
 

@@ -1,11 +1,13 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Deprecated;
 
+import org.firstinspires.ftc.teamcode.AbState;
 import org.json.*;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Locale;
 
+@Deprecated
 public class StateConnector {
     private HashMap<String, AbState> states;
 

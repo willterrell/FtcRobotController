@@ -1,12 +1,17 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Deprecated;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.teamcode.AbState;
+import org.firstinspires.ftc.teamcode.HardwareHandler;
+import org.firstinspires.ftc.teamcode.MoveWithIMUState;
+import org.firstinspires.ftc.teamcode.PlaceholderState;
 
-@Autonomous(name="Test Move", group="tests")
+@Deprecated
+@Autonomous(name="Deprecated test move", group="deprecated")
 public class TestMove extends LinearOpMode {
     private HardwareHandler hardwareHandler;
     private MoveWithIMUState moveWithIMUState;

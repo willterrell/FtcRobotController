@@ -11,6 +11,7 @@ public abstract class AbState { // this is basically a decorator pattern
     private AbState prevState;
     public AbState(String name, String ...nextStateName){
         this.name = name;
+        nextStateMap = new HashMap<String, AbState>();
         for (String stateName : nextStateName) {
             nextStateMap.put(stateName, null); // this should be set with putNextState
         }
