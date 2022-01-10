@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -13,6 +12,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
+import org.firstinspires.ftc.teamcode.movement.imu.SimpsonIntegrator;
+import org.firstinspires.ftc.teamcode.structures.PIDController;
 
 import java.util.HashMap;
 
@@ -42,7 +43,10 @@ public class HardwareHandler {
 
     private DcMotor.RunMode currRunMode;
 
-    public HardwareHandler(HardwareMap hardwareMap) {
+    private Position currPos;
+    private double currAngle;
+
+    public HardwareHandler(HardwareMap hardwareMap, Position currPos) {
         this.hardwareMap = hardwareMap;
         // Motor initiations here
         leftFront = hardwareMap.dcMotor.get("leftFront");
@@ -88,10 +92,12 @@ public class HardwareHandler {
         diffLSPID = new PIDController(dKP, dKI, dKD);
 
         //assert(imu.isSystemCalibrated()): "Calibrate the IMU";
+
+        this.currPos = currPos;
     }
 
-    public void initIMU(Position currPosition, Velocity currVelocity) { // should be called on the start of the opmode
-        imu.startAccelerationIntegration(currPosition, currVelocity, msPollInterval); // example had it with 1000ms?
+    public void initIMU(Velocity currVelocity) { // should be called on the start of the opmode
+        imu.startAccelerationIntegration(currPos, currVelocity, msPollInterval); // example had it with 1000ms?
     }
 
     public void runRamp() { // activates the ramp at a constant speed
@@ -171,11 +177,13 @@ public class HardwareHandler {
     }
 
     public double getIMUZAngle() { // gives current position as a double list formatted [x, y, r]
-        return imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
+        currAngle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
+        return currAngle;
     }
 
     public Position getIMUPosition() {
         Position pos = imu.getPosition();
+        currPos = pos;
         pos.toUnit(DistanceUnit.METER);
         return pos;
         // maybe do some transform on this so its oriented with y going forward and x sideways
@@ -283,5 +291,29 @@ public class HardwareHandler {
 
     public boolean getBlockSensorDetection() { // returns whether there is a block in front of the block sensor
         return false;
+    }
+
+    public Position getEncoderPosition() {
+        return currPos;
+    }
+
+    public void addEncoderPosition(Position pos) {
+        currPos = addPositions(currPos, pos);
+    }
+
+    public double getEncoderAngle() {
+        return currAngle;
+    }
+
+    public void addEncoderAngle(double angle) {
+        currAngle += angle;
+    }
+
+    public Position addPositions(Position pos1, Position pos2) {
+        return new Position(DistanceUnit.METER, pos1.x + pos2.x, pos1.y + pos2.y, pos1.z + pos2.z, 0);
+    }
+
+    public Position subtractPositions(Position pos1, Position pos2) {
+        return new Position(DistanceUnit.METER, pos1.x - pos2.x, pos1.y - pos2.y, pos1.z - pos2.z, 0);
     }
 }

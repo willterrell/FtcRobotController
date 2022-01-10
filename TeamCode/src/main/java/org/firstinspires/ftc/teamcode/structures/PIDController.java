@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.structures;
 
 public class PIDController {
     private double kP, kI, kD, p, i, d, prevError;

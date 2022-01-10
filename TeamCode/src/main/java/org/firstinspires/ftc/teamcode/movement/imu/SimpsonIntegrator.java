@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.movement.imu;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;

@@ -1,9 +1,11 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.teleops;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -25,7 +27,7 @@ public class LSTuning extends OpMode {
     private boolean prevX = false, prevY = false, prevA = false, prevB = false, toggleB = false;
     @Override
     public void init() {
-        hardwareHandler = new HardwareHandler(hardwareMap);
+        hardwareHandler = new HardwareHandler(hardwareMap, new Position());
         file = new File("LSPIDCoeff.json");
     }
 

@@ -2,15 +2,12 @@ package org.firstinspires.ftc.teamcode.Deprecated;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.teamcode.SimpsonIntegrator;
-
-import java.lang.reflect.Method;
+import org.firstinspires.ftc.teamcode.movement.imu.SimpsonIntegrator;
 
 @Deprecated
 class Main implements Runnable {

@@ -1,10 +1,15 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.autos;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.teamcode.AbState;
+import org.firstinspires.ftc.teamcode.HardwareHandler;
+import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
+import org.firstinspires.ftc.teamcode.movement.encoder.EncoderMove;
+import org.firstinspires.ftc.teamcode.structures.PosType;
 
 @Autonomous(name="EncoderMove")
 public class EncoderMoveAuto extends LinearOpMode {
@@ -18,11 +23,11 @@ public class EncoderMoveAuto extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         final double speed = 0.3;
-        HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap);
+        HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, new Position());
         AbState currState;
         Position currPos = new Position(DistanceUnit.METER, 0, 0, 0, 0);
-        EncoderMove move1 = new EncoderMove("move1", hardwareHandler, addPos(currPos, new Position(DistanceUnit.METER, 1, 1, 0, 0)), 45, speed);
-        EncoderMove move2 = new EncoderMove("move2", hardwareHandler, addPos(currPos, new Position(DistanceUnit.METER, 0, 2, 0, 0)), 270, speed);
+        EncoderMove move1 = new EncoderMove("move1", hardwareHandler, addPos(currPos, new Position(DistanceUnit.METER, 1, 1, 0, 0)), 45, speed, PosType.RELATIVE);
+        EncoderMove move2 = new EncoderMove("move2", hardwareHandler, addPos(currPos, new Position(DistanceUnit.METER, 0, 2, 0, 0)), 270, speed, PosType.RELATIVE);
         move1.putNextState("next", move2);
         move2.putNextState("next", new PlaceholderState());
         currState = move1;

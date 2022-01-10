@@ -7,8 +7,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
-import org.firstinspires.ftc.teamcode.MoveWithIMUState;
-import org.firstinspires.ftc.teamcode.PlaceholderState;
+import org.firstinspires.ftc.teamcode.movement.imu.MoveWithIMUState;
+import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
+import org.firstinspires.ftc.teamcode.structures.PosType;
 
 @Deprecated
 @Autonomous(name="Deprecated test move", group="deprecated")
@@ -19,8 +20,8 @@ public class TestMove extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        hardwareHandler = new HardwareHandler(hardwareMap);
-        moveWithIMUState = new MoveWithIMUState("test move", hardwareHandler, new Position(DistanceUnit.METER, 1.0, 0.0, 0.0, 0), 45);
+        hardwareHandler = new HardwareHandler(hardwareMap, new Position());
+        moveWithIMUState = new MoveWithIMUState("test move", hardwareHandler, new Position(DistanceUnit.METER, 1.0, 0.0, 0.0, 0), 45, 0.3, PosType.RELATIVE);
         moveWithIMUState.putNextState("next", new PlaceholderState());
         currState = moveWithIMUState;
 

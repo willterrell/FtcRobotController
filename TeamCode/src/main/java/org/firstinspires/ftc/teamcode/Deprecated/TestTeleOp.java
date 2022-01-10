@@ -29,10 +29,10 @@ public class TestTeleOp extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         telemetry.addData("start", true);
         telemetry.update();
-        hardwareHandler = new HardwareHandler(hardwareMap);
+        hardwareHandler = new HardwareHandler(hardwareMap, new Position());
         telemetry.addData("handler init", true);
         telemetry.update();
-        hardwareHandler.initIMU(new Position(), new Velocity());
+        hardwareHandler.initIMU(new Velocity());
         telemetry.addData("imu init", true);
         telemetry.update();
 

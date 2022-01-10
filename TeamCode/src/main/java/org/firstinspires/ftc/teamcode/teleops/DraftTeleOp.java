@@ -1,9 +1,12 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.teleops;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.teamcode.HardwareHandler;
 
 @TeleOp(name="TeleOp Draft 1")
 public class DraftTeleOp extends OpMode {
@@ -15,7 +18,7 @@ public class DraftTeleOp extends OpMode {
     private CRServo carousel;
     @Override
     public void init() {
-        hardwareHandler = new HardwareHandler(hardwareMap);
+        hardwareHandler = new HardwareHandler(hardwareMap, new Position());
         timer = new ElapsedTime();
         prevTime = timer.milliseconds();
     }

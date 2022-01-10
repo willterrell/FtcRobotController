@@ -1,6 +1,9 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.movement.imu;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.teamcode.AbState;
+import org.firstinspires.ftc.teamcode.HardwareHandler;
+import org.firstinspires.ftc.teamcode.structures.PosType;
 
 import java.util.HashMap;
 
@@ -14,20 +17,28 @@ public class MoveWithIMUState extends AbState {
     private final double DPrecision = 0.1; // how close the robot must get to the target before stopping
     private final double RPrecision = 15;
     // consider unit for these: meters, degrees
-    private final double Speed = 0.3;
+    private final double Speed;
+
+    private PosType posType;
 
 
-    public MoveWithIMUState(String name, HardwareHandler hardwareHandler, Position target, double targetAngle) {
+    public MoveWithIMUState(String name, HardwareHandler hardwareHandler, Position target, double targetAngle, double speed, PosType posType) {
         super(name, "next");
         this.hardwareHandler = hardwareHandler;
         this.target = target;
         this.targetAngle = targetAngle;
+        this.posType = posType;
+        this.Speed = speed;
     }
 
     @Override
     public void init() { // for the first next (won't matter usually but just in case)
         curr = hardwareHandler.getIMUPosition();
         currAngle = hardwareHandler.getIMUZAngle();
+        if (posType == PosType.RELATIVE) {
+            target = hardwareHandler.addPositions(target, curr);
+            targetAngle += currAngle;
+        }
     }
 
     public double distance(double x, double y) {
