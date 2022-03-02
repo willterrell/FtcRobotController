@@ -8,6 +8,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 
+import java.util.Locale;
+
 @TeleOp(name="TeleOp Draft 1")
 public class DraftTeleOp extends OpMode {
     private HardwareHandler hardwareHandler;
@@ -29,8 +31,8 @@ public class DraftTeleOp extends OpMode {
         double c = 0.5;
         if (gamepad1.a) c = 1;
         else if (gamepad1.b) c = 0.5;
-        double speed = (gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y + gamepad1.right_stick_x*gamepad1.right_stick_x) * c; // magnitude squared
-        hardwareHandler.move(gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, speed);
+        double speed = (gamepad1.left_stick_x * gamepad1.left_stick_x + gamepad1.left_stick_y * gamepad1.left_stick_y) * c; // magnitude squared
+        hardwareHandler.move(gamepad1.left_stick_y, gamepad1.left_stick_x, 0, speed);
 
         // carousel movement -> hold y
         double carouselIn;
@@ -43,21 +45,17 @@ public class DraftTeleOp extends OpMode {
         hardwareHandler.moveInputWheel(gamepad1.right_trigger - gamepad1.left_trigger);
 
         // linear slide -> up = dpad_up, down = dpad_down
-        double dt = timer.milliseconds() - prevTime;
-        int deltaPos = 0;
-        if (gamepad1.dpad_up) deltaPos = 1;
-        if (gamepad1.dpad_down) deltaPos = -1;
-        hardwareHandler.moveSlide(deltaPos*slideSpeed);
+        hardwareHandler.moveSlide(150 * (gamepad1.dpad_up ? 1: 0) - 150 * (gamepad1.dpad_down ? 1: 0));
         double[] lsTeles = hardwareHandler.updateSlides();
-        double upIn = lsTeles[0];
-        double diffIn = lsTeles[1];
-        telemetry.addData("LS up in:", upIn);
-        telemetry.addData("LS diff in:", upIn);
         telemetry.addData("LS Target Position:", hardwareHandler.getlSTargetPos());
         /*double pow = 0;
         if (gamepad1.dpad_up) pow = 0.5;
         if (gamepad1.dpad_down) pow = -0.5;
-        hardwareHandler.simpleSlides(pow);*/
+        hardwareHandler.simpleSlides(pow, pow);*/
+        int[] lsPos = hardwareHandler.getLSPos();
+        telemetry.addData("LS Pos: ", String.format(Locale.ENGLISH, "{%d, %d}", lsPos[0], lsPos[1]));
 
+        double[] dtVel = hardwareHandler.getVelocities();
+        telemetry.addData("Drivetrain velocities: ", String.format(Locale.ENGLISH, "{lf:%f, lr:%f, rf:%f, rr:%f}", dtVel[0], dtVel[1], dtVel[2], dtVel[3]));
     }
 }

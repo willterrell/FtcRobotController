@@ -18,7 +18,7 @@ public class DetectBlocksAndDropOff extends AbState {
 
     @Override
     public void init() {
-        EncoderMove moveToBarcode = null;
+        EncoderMove moveToBarcode = null; // TODO change to do all sensing at once and implement distances
 
         MoveWithSensor moveFirstBlock = null;
         MoveWithSensor moveSecondBlock = null;

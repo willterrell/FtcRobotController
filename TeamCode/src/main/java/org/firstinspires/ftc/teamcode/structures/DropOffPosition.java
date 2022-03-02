@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utilities;
+package org.firstinspires.ftc.teamcode.structures;
 
 public enum DropOffPosition {
     BOTTOM_TIER,

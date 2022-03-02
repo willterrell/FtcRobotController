@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.movement.encoder;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
@@ -11,7 +12,8 @@ public class EncoderRotateState extends AbState {
     private double degrees;
     private HardwareHandler hardwareHandler;
     private double speed;
-    public EncoderRotateState(String name, double degrees, HardwareHandler hardwareHandler, double speed) {
+
+    public EncoderRotateState(String name, HardwareHandler hardwareHandler, double degrees, double speed) {
         super(name, "next");
         this.degrees = degrees;
         this.hardwareHandler = hardwareHandler;
@@ -20,17 +22,17 @@ public class EncoderRotateState extends AbState {
 
     @Override
     public void init() {
-
     }
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        return nextStateMap.get("next");
+        AbState next = nextStateMap.get("next");
+        return next;
     }
 
     @Override
     public void run() {
         hardwareHandler.rotateWithEncoders(degrees);
-        hardwareHandler.setPowers(Math.signum(degrees) * -1 * speed, Math.signum(degrees) * -1 * speed, Math.signum(degrees) * speed, Math.signum(degrees) * speed);
+        hardwareHandler.setPowers(speed, speed, speed, speed);
     }
 }

@@ -7,9 +7,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
+import org.firstinspires.ftc.teamcode.TelemetryFactory;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.movement.encoder.EncoderMove;
 import org.firstinspires.ftc.teamcode.structures.PosType;
+import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
 @Autonomous(name="EncoderMove")
 public class EncoderMoveAuto extends LinearOpMode {
@@ -25,7 +27,7 @@ public class EncoderMoveAuto extends LinearOpMode {
         final double speed = 0.3;
         HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, new Position());
         AbState currState;
-        Position currPos = new Position(DistanceUnit.METER, 0, 0, 0, 0);
+        Position currPos = new Position(DistanceUnit.INCH, 0, 0, 0, 0);
         EncoderMove move1 = new EncoderMove("move1", hardwareHandler, addPos(currPos, new Position(DistanceUnit.METER, 1, 1, 0, 0)), 45, speed, PosType.RELATIVE);
         EncoderMove move2 = new EncoderMove("move2", hardwareHandler, addPos(currPos, new Position(DistanceUnit.METER, 0, 2, 0, 0)), 270, speed, PosType.RELATIVE);
         move1.putNextState("next", move2);
@@ -37,6 +39,14 @@ public class EncoderMoveAuto extends LinearOpMode {
         while (opModeIsActive()) {
             currState.run();
             currState = currState.next();
+            for (TelemetryObj obj : currState.getTelemetries()) {
+                telemetry.addData(obj.getCaption(), obj.getContent());
+            }
+            for (TelemetryObj obj : TelemetryFactory.getTelemetries()) {
+                telemetry.addData(obj.getCaption(), obj.getContent());
+            }
+            telemetry.addData("AbState name: ", currState.getName());
+            telemetry.update();
         }
     }
 }

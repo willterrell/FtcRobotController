@@ -44,10 +44,10 @@ public class SimpsonIntegrator implements BNO055IMU.AccelerationIntegrator { // 
         initPos = initialPosition;
         initVel = initialVelocity;
         if (initPos == null) {
-            initPos = new Position(DistanceUnit.METER, 0.0, 0.0, 0.0, 0);
+            initPos = new Position(DistanceUnit.INCH, 0.0, 0.0, 0.0, 0);
         }
         if (initVel == null) {
-            initVel = new Velocity(DistanceUnit.METER, 0.0, 0.0, 0.0, 0);
+            initVel = new Velocity(DistanceUnit.INCH, 0.0, 0.0, 0.0, 0);
         }
         poss.add(initPos);
         vels.add(initVel);
