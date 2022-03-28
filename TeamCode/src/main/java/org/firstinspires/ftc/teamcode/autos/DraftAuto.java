@@ -7,7 +7,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
-import org.firstinspires.ftc.teamcode.TelemetryFactory;
 import org.firstinspires.ftc.teamcode.movement.encoder.EncoderMove;
 import org.firstinspires.ftc.teamcode.structures.PosType;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;

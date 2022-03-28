@@ -7,7 +7,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
-import org.firstinspires.ftc.teamcode.TelemetryFactory;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.movement.encoder.EncoderMove;
 import org.firstinspires.ftc.teamcode.structures.PosType;
@@ -40,9 +39,6 @@ public class EncoderMoveAuto extends LinearOpMode {
             currState.run();
             currState = currState.next();
             for (TelemetryObj obj : currState.getTelemetries()) {
-                telemetry.addData(obj.getCaption(), obj.getContent());
-            }
-            for (TelemetryObj obj : TelemetryFactory.getTelemetries()) {
                 telemetry.addData(obj.getCaption(), obj.getContent());
             }
             telemetry.addData("AbState name: ", currState.getName());

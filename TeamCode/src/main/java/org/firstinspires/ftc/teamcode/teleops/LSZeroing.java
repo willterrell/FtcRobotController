@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.teleops;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
@@ -30,10 +29,10 @@ public class LSZeroing extends OpMode {
         if (gamepad1.dpad_down) pow = -0.5;
 
         if (toggleB) {
-            hardwareHandler.simpleSlides(0, pow);
+            hardwareHandler.moveSlidesWithPower(0, pow);
         }
         else {
-            hardwareHandler.simpleSlides(pow, 0);
+            hardwareHandler.moveSlidesWithPower(pow, 0);
         }
 
         if (a) {

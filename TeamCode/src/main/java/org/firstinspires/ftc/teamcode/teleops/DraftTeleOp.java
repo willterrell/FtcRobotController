@@ -31,8 +31,9 @@ public class DraftTeleOp extends OpMode {
         double c = 0.5;
         if (gamepad1.a) c = 1;
         else if (gamepad1.b) c = 0.5;
-        double speed = (gamepad1.left_stick_x * gamepad1.left_stick_x + gamepad1.left_stick_y * gamepad1.left_stick_y) * c; // magnitude squared
-        hardwareHandler.move(gamepad1.left_stick_y, gamepad1.left_stick_x, 0, speed);
+        double speed = (gamepad1.left_stick_x * gamepad1.left_stick_x + gamepad1.left_stick_y * gamepad1.left_stick_y + gamepad1.right_stick_x * gamepad1.right_stick_x) * c; // magnitude squared
+        speed = Math.max(Math.min(1, speed), -1);
+        hardwareHandler.moveWithPower(gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, speed);
 
         // carousel movement -> hold y
         double carouselIn;
@@ -42,20 +43,22 @@ public class DraftTeleOp extends OpMode {
         hardwareHandler.moveCarousel(carouselIn);
 
         // input spinner -> in = right_trigger, out = left_trigger
-        hardwareHandler.moveInputWheel(gamepad1.right_trigger - gamepad1.left_trigger);
+        hardwareHandler.moveInputWheel(- gamepad1.right_trigger + gamepad1.left_trigger);
 
         // linear slide -> up = dpad_up, down = dpad_down
-        hardwareHandler.moveSlide(150 * (gamepad1.dpad_up ? 1: 0) - 150 * (gamepad1.dpad_down ? 1: 0));
+        hardwareHandler.addSlideSetpoint(150 * (gamepad1.dpad_up ? 1: 0) - 150 * (gamepad1.dpad_down ? 1: 0));
         double[] lsTeles = hardwareHandler.updateSlides();
-        telemetry.addData("LS Target Position:", hardwareHandler.getlSTargetPos());
+        telemetry.addData("LS Target Position:", hardwareHandler.getLSSetpoint());
         /*double pow = 0;
         if (gamepad1.dpad_up) pow = 0.5;
         if (gamepad1.dpad_down) pow = -0.5;
         hardwareHandler.simpleSlides(pow, pow);*/
-        int[] lsPos = hardwareHandler.getLSPos();
+        int[] lsPos = hardwareHandler.getLSEncoderPosition();
         telemetry.addData("LS Pos: ", String.format(Locale.ENGLISH, "{%d, %d}", lsPos[0], lsPos[1]));
 
+        double[] dtPow = hardwareHandler.getPowers();
         double[] dtVel = hardwareHandler.getVelocities();
-        telemetry.addData("Drivetrain velocities: ", String.format(Locale.ENGLISH, "{lf:%f, lr:%f, rf:%f, rr:%f}", dtVel[0], dtVel[1], dtVel[2], dtVel[3]));
+        telemetry.addData("Drivetrain power", String.format(Locale.ENGLISH, "{lf:%f, lr:%f, rf:%f, rr:%f}", dtVel[0], dtVel[1], dtVel[2], dtVel[3]));
+        telemetry.addData("Drivetrain velocities", String.format(Locale.ENGLISH, "{lf:%f, lr:%f, rf:%f, rr:%f}", dtPow[0], dtPow[1], dtPow[2], dtPow[3]));
     }
 }

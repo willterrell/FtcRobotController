@@ -45,11 +45,11 @@ public class HardwareHandler {
     private final double width = 0.31;
     private final double length = 0.19;
     private final int ticksPerRotation = 1120;
-    private int lSTargetPos = 0;
+    private int lsSetpoint = 0;
 
     private PIDController upRLSPID, upLLSPID, diffLSPID;
     private boolean upRDis = true, upLDis = true, diffDis = true;
-    private double upRKP = 0.0009562, upRKI = 0.000001, upRKD = 0, upLKP = 0.001660, upLKI = 0.000001, upLKD = 0, dKP = 0.001679, dKI = 0.000001, dKD = 0; // coefficients for linearSlidePID 1 and 2
+    private double upRKP = 0.0009562, upRKI = 0.000001, upRKD = 0, upRKID = 0, upRKC = 0, upLKP = 0.001660, upLKI = 0.000001, upLKD = 0, upLKID = 0, upLKC = 0, dKP = 0.001679, dKI = 0.000001, dKD = 0, dKID = 0, dKC = 0; // coefficients for linearSlidePID 1 and 2
     // it might just be better to have it only be a p controller since the target is changing
 
     private DcMotor.RunMode currRunMode;
@@ -87,6 +87,7 @@ public class HardwareHandler {
         rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
         rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
         linearSlideLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        linearSlideRight.setDirection(DcMotorSimple.Direction.REVERSE);
         input.setDirection(DcMotorSimple.Direction.REVERSE);
         carousel.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -119,10 +120,10 @@ public class HardwareHandler {
      */
 
 
-    public void move(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
+    public void moveWithPower(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
         //assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
         // add motor type assertion or change
-        if (currRunMode != DcMotor.RunMode.RUN_WITHOUT_ENCODER) setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        if (currRunMode != DcMotor.RunMode.RUN_WITHOUT_ENCODER) setDriveTrainMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         speed = Math.abs(speed);
         double total = Math.abs(d) + Math.abs(r);
         if (d == 0 && r == 0) {
@@ -148,6 +149,7 @@ public class HardwareHandler {
     }
 
 
+
     /*
                 ~ AUTONOMOUS ~
      */
@@ -167,47 +169,47 @@ public class HardwareHandler {
         moveWithEncoder(0, finalAngle);
     }
     */
-    public Position getEncoderPosition() {
+    public Position getVirtualPosition() {
         return currPos;
     }
 
-    public double[] getMotorPositions() {return new double[]{leftFront.getCurrentPosition(), rightFront.getCurrentPosition(), leftRear.getCurrentPosition(), rightRear.getCurrentPosition()};}
+    public double[] getEncoderPositions() {return new double[]{leftFront.getCurrentPosition(), rightFront.getCurrentPosition(), leftRear.getCurrentPosition(), rightRear.getCurrentPosition()};}
 
-    public void addEncoderPosition(Position pos) {
+    public void addToVirtualPosition(Position pos) {
         double x = currPos.x + pos.x, y = currPos.y + pos.y;
         x = (Math.abs(x) > 70.125) ? 70.125 * Math.signum(x) : x; // clips position to the field
         y = (Math.abs(y) > 70.125) ? 70.125 * Math.signum(y) : y;
         currPos = addPositions(currPos, pos);
     }
 
-    public double getEncoderAngle() {
+    public double getVirtualAngle() {
         return currAngle;
     }
 
-    public void addEncoderAngle(double angle) {
+    public void addToVirtualAngle(double angle) {
         currAngle += angle;
     }
 
-    public void setEncoderPosition(Position pos) {
+    public void setVirtualPosition(Position pos) {
         currPos = pos;
     }
 
 
-    public void setPowers(double lf, double lr, double rf, double rr) {
+    public void setDriveTrainPowers(double lf, double lr, double rf, double rr) {
         leftFront.setPower(lf);
         leftRear.setPower(lr);
         rightFront.setPower(rf);
         rightRear.setPower(rr);
     }
 
-    public boolean isBusy() {
+    public boolean driveTrainIsBusy() {
         return leftFront.isBusy() ||
                 rightFront.isBusy() ||
                 leftRear.isBusy() ||
                 rightRear.isBusy();
     }
 
-    public void setMode(DcMotor.RunMode mode) {
+    public void setDriveTrainMode(DcMotor.RunMode mode) {
         leftFront.setMode(mode);
         rightFront.setMode(mode);
         leftRear.setMode(mode);
@@ -215,34 +217,29 @@ public class HardwareHandler {
         currRunMode = mode;
     }
 
-    public void setTargets(int tickLF, int tickRF, int tickLR, int tickRR) {
-        setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    public void setDriveTrainEncoderTargets(int tickLF, int tickRF, int tickLR, int tickRR) {
+        setDriveTrainMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         leftFront.setTargetPosition(-tickLF - leftFront.getCurrentPosition()); // 3.125 is for gearing
         rightFront.setTargetPosition(-tickRF - rightFront.getCurrentPosition());
         leftRear.setTargetPosition(-tickLR - leftRear.getCurrentPosition());
         rightRear.setTargetPosition(-tickRR - rightRear.getCurrentPosition());
 
-        TelemetryFactory.add(new TelemetryObj<>("lf", leftFront.getCurrentPosition()));
-        TelemetryFactory.add(new TelemetryObj<>("rf", leftRear.getCurrentPosition()));
-        TelemetryFactory.add(new TelemetryObj<>("lr", leftRear.getCurrentPosition()));
-        TelemetryFactory.add(new TelemetryObj<>("rr", rightRear.getCurrentPosition()));
-
-        setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        setDriveTrainMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
-    public void setForwardTargets(int ticks) {
-        setTargets(ticks, ticks, ticks, ticks);
+    public void setEncoderTargetsForward(int ticks) {
+        setDriveTrainEncoderTargets(ticks, ticks, ticks, ticks);
     }
 
     @Deprecated
-    public void setRotateTargets(int ticks) { // CCW is +
-        setTargets(ticks, -ticks, ticks, -ticks);
+    public void setEncoderTargetsRotate(int ticks) { // CCW is +
+        setDriveTrainEncoderTargets(ticks, -ticks, ticks, -ticks);
     }
 
-    public void forwardWithEncoders(double distance) { // only needs to be run once
+    public void goForwardWithEncoders(double distance) { // only needs to be run once
         int ticks = (int) (distance * ticksPerRotation / Math.PI / wheelDiameter * 48 / (50.5));
-        setForwardTargets(ticks);
+        setEncoderTargetsForward(ticks);
     }
 
     @Deprecated
@@ -250,12 +247,12 @@ public class HardwareHandler {
         double inPerDegree = Math.PI * Math.sqrt(length*length + width*width) / 360;
         double inPerTick = ticksPerRotation * Math.PI * wheelDiameter; // ticks * mpt / mpd = degrees
         int ticks = (int) (degrees / inPerTick * inPerDegree);
-        setRotateTargets(ticks);
+        setEncoderTargetsRotate(ticks);
     }
 
     public void stopDrivetrain() {
-        setPowers(0, 0, 0, 0);
-        setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        setDriveTrainPowers(0, 0, 0, 0);
+        setDriveTrainMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     public double getTargetDistance() {
@@ -300,37 +297,40 @@ public class HardwareHandler {
                 - LINEAR SLIDES -
      */
 
-
     public double[] updateSlides() {
         int leftPos = linearSlideLeft.getCurrentPosition();
         int rightPos = linearSlideRight.getCurrentPosition();
         int diff = leftPos - rightPos;
 
-        double upLInput = upLLSPID.getInput(lSTargetPos - leftPos);
-        double upRInput = upRLSPID.getInput(lSTargetPos - rightPos);
+        double upLInput = upLLSPID.getInput(lsSetpoint - leftPos);
+        double upRInput = upRLSPID.getInput(lsSetpoint - rightPos);
         double diffInput = diffLSPID.getInput(diff);
 
         double kUL = (upLDis ? 1 : 0);
         double kUR = (upRDis ? 1 : 0);
         double kDiff = (diffDis ? 1 : 0);
 
-        simpleSlides(kUL*upLInput - kDiff*diffInput, kUR*upRInput + kDiff*diffInput);
+        moveSlidesWithPower(kUL*upLInput - kDiff*diffInput, kUR*upRInput + kDiff*diffInput);
         return new double[]{kUL*upLInput - kDiff*diffInput, kUR*upRInput + kDiff*diffInput}; // returns for telemetry, would be better as a getter but im lazy
     }
 
-    public void moveSlide(int ticks) {
+    public void addSlideSetpoint(int ticks) {
         final int maxPos = 5070;
-        int sum = lSTargetPos + ticks;
-        if (sum <= maxPos) lSTargetPos = sum;
+        int sum = lsSetpoint + ticks;
+        if (sum <= maxPos) lsSetpoint = sum;
     }
 
-    public int getlSTargetPos(){
-        return lSTargetPos;
+    public void setSlideSetpoint(int ticks) {
+        lsSetpoint = ticks;
     }
 
-    public int[] getLSPos(){return new int[] {linearSlideLeft.getCurrentPosition(), linearSlideRight.getCurrentPosition()};}
+    public int getLSSetpoint(){
+        return lsSetpoint;
+    }
 
-    public void simpleSlides(double power1, double power2) {
+    public int[] getLSEncoderPosition(){return new int[] {linearSlideLeft.getCurrentPosition(), linearSlideRight.getCurrentPosition()};}
+
+    public void moveSlidesWithPower(double power1, double power2) {
         /*if (linearSlideAtLimit(linearSlideLeft.getCurrentPosition(), power1)) linearSlideLeft.setPower(0);
         else linearSlideLeft.setPower(power1);
         linearSlideLeft.setPower(power1);
@@ -341,28 +341,34 @@ public class HardwareHandler {
         linearSlideRight.setPower(power2);
     }
 
-    private boolean linearSlideAtLimit(int pos, double pow) {
+    private boolean areLinearSlideAtLimit(int pos, double pow) {
         return (pos > 5070 && pow > 0); //|| (pos < 0 && pow < 0);
     }
 
-    public void setLSPIDCoeff(double p, double i, double d, LSType type) { // scales PID coefficients by parameter
+    public void setLSPIDCoeff(double p, double i, double d, double id, double c, LSType type) { // scales PID coefficients by parameter
         if (type == LSType.UP_LEFT) {
             upLKP = p;
             upLKI = i;
             upLKD = d;
-            upLLSPID = new PIDController(p, i ,d);
+            upLKID = id;
+            upLKC = c;
+            upLLSPID = new PIDController(p, i ,d, id, c, 100);
         }
         else if (type == LSType.UP_RIGHT) {
             upRKP = p;
             upRKI = i;
             upRKD = d;
-            upRLSPID = new PIDController(p, i ,d);
+            upRKID = id;
+            upRKC = c;
+            upRLSPID = new PIDController(p, i ,d, id, c, 100);
         }
         else {
             dKP = p;
             dKI = i;
             dKD = d;
-            diffLSPID = new PIDController(p, i ,d);
+            dKID = id;
+            dKC = c;
+            diffLSPID = new PIDController(p, i ,d, id, c, 100);
         }
     }
 
@@ -390,6 +396,21 @@ public class HardwareHandler {
         }
     }
 
+    public void resetSlidePosition() {
+        if (linearSlideRight.getCurrentPosition() > 500) {
+            linearSlideRight.setPower(-0.3);
+        }
+        else {
+            linearSlideRight.setPower(0);
+        }
+        if (linearSlideLeft.getCurrentPosition() > 500) {
+            linearSlideLeft.setPower(-0.3);
+        }
+        else {
+            linearSlideLeft.setPower(0);
+        }
+    }
+
     /*
                 - MISC -
                ~ TELEOP ~
@@ -410,7 +431,7 @@ public class HardwareHandler {
      */
 
 
-    public double[] getSensorBoolean() { // should return in order left-most to right-most
+    public double[] doesBarcodeDetect() { // should return in order left-most to right-most
         return null;
     }
 
@@ -425,16 +446,16 @@ public class HardwareHandler {
      */
 
 
-    public Position normalize(Position reference, Position transform, double angle) { // converts a transform from the perspective of angle
-        if (!reference.unit.equals(transform.unit)) { // convert to same units
-            reference = reference.toUnit(transform.unit);
+    public Position findRelativeDifference(Position robotPos, Position targetPos, double robotAngle) { // converts a transform from the perspective of angle
+        if (!robotPos.unit.equals(targetPos.unit)) { // convert to same units
+            robotPos = robotPos.toUnit(targetPos.unit);
         }
-        Position diff = new Position(reference.unit, transform.x-reference.x, transform.y-reference.y, transform.x-reference.z, 0);
-        diff = rotateTransform(diff, 90 - angle); // rotates it so that the robot is looking north (y is forward, x is sideways)
+        Position diff = new Position(robotPos.unit, targetPos.x-robotPos.x, targetPos.y-robotPos.y, targetPos.x-robotPos.z, 0);
+        diff = rotatePositionAroundOrigin(diff, 90 - robotAngle); // rotates difference so that y is forward and x is side to side
         return diff;
     }
 
-    public Position rotateTransform(Position transform, double angle) { // rotates a 2d vector by angle
+    public Position rotatePositionAroundOrigin(Position transform, double angle) { // rotates a 2d vector by angle
         double x = transform.x * Math.cos(angle) - transform.y * Math.sin(angle);
         double y = transform.x * Math.sin(angle) + transform.y * Math.cos(angle);
         return new Position(transform.unit, x, y, 0.0, 0); // TODO check this

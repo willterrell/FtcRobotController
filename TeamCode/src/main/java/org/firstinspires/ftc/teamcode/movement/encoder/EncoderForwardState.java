@@ -10,13 +10,13 @@ public class EncoderForwardState extends AbState {
     private double inches;
     private HardwareHandler hardwareHandler;
     private double speed;
-    private TelemetryObj<Double> targetDistance;
+    private TelemetryObj targetDistance;
     public EncoderForwardState(String name, HardwareHandler hardwareHandler, double inches, double speed) {
         super(name, "next");
         this.inches = inches;
         this.hardwareHandler = hardwareHandler;
         this.speed = speed;
-        targetDistance = new TelemetryObj<>("Target Distance: ", inches);
+        targetDistance = new TelemetryObj("Target Distance: ", inches);
     }
 
     @Override
@@ -33,7 +33,7 @@ public class EncoderForwardState extends AbState {
 
     @Override
     public void run() {
-        hardwareHandler.forwardWithEncoders(inches);
-        hardwareHandler.setPowers(speed, speed, speed, speed); // TODO check if we only need to have positive speed
+        hardwareHandler.goForwardWithEncoders(inches);
+        hardwareHandler.setDriveTrainPowers(speed, speed, speed, speed); // TODO check if we only need to have positive speed
     }
 }

@@ -1,9 +1,9 @@
 package org.firstinspires.ftc.teamcode.structures;
 
-public class TelemetryObj<T> {
+public class TelemetryObj {
     private String caption;
-    private T content;
-    public TelemetryObj(String caption, T content) {
+    private Object content;
+    public TelemetryObj(String caption, Object content) {
         this.caption = caption;
         this.content = content;
     }
@@ -15,11 +15,11 @@ public class TelemetryObj<T> {
         return caption;
     }
 
-    public T getContent() {
+    public Object getContent() {
         return content;
     }
 
-    public void setContent(T content) {
+    public void setContent(Object content) {
         this.content = content;
     }
 }

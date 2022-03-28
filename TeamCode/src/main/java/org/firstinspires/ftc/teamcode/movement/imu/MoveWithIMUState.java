@@ -50,7 +50,7 @@ public class MoveWithIMUState extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        Position diff = hardwareHandler.normalize(curr, target, currAngle);
+        Position diff = hardwareHandler.findRelativeDifference(curr, target, currAngle);
         if (distance(diff.x, diff.y) < DPrecision && Math.abs(targetAngle - currAngle) < RPrecision) { // we're not caring for rotation rigth now
             return nextStateMap.get("next"); // user must use this key
         }
@@ -61,19 +61,19 @@ public class MoveWithIMUState extends AbState {
     public void run() {
         curr = hardwareHandler.getIMUPosition();
         currAngle = hardwareHandler.getIMUZAngle();
-        Position diff = hardwareHandler.normalize(curr, target, currAngle);
+        Position diff = hardwareHandler.findRelativeDifference(curr, target, currAngle);
         double angleToTarget = 0;
         if (diff.x != 0) {
             angleToTarget = Math.atan(diff.y/diff.x);
         }
         if (Math.abs(angleToTarget) > RPrecision) { // if the robot is not facing the target
-            hardwareHandler.move(0, Math.signum(angleToTarget), 0, Speed);
+            hardwareHandler.moveWithPower(0, Math.signum(angleToTarget), 0, Speed);
         }
         else if (diff.y > DPrecision) { // once we're facing in the right direction, move towards target
-            hardwareHandler.move(Math.signum(diff.y), 0, 0, Speed);
+            hardwareHandler.moveWithPower(Math.signum(diff.y), 0, 0, Speed);
         }
         else if (currAngle != targetAngle) { // once we're at the spot we need to be, orient ourselves to the direction of target
-            hardwareHandler.move(0, Math.signum(targetAngle - currAngle), 0, Speed);
+            hardwareHandler.moveWithPower(0, Math.signum(targetAngle - currAngle), 0, Speed);
         }
     }
 }

@@ -1,19 +1,11 @@
 package org.firstinspires.ftc.teamcode.Deprecated;
 
-import com.google.gson.JsonSerializer;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
-import org.checkerframework.checker.units.qual.Speed;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
-import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 
 import java.io.File;
@@ -42,7 +34,7 @@ public class TestTeleOp extends LinearOpMode {
             telemetry.addData("initialized:",true);
 
             double speed = (Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2))/2;
-            hardwareHandler.move(gamepad1.left_stick_y, gamepad1.left_stick_x, 0, speed);
+            hardwareHandler.moveWithPower(gamepad1.left_stick_y, gamepad1.left_stick_x, 0, speed);
 
             Position curPos = hardwareHandler.getIMUPosition();
 

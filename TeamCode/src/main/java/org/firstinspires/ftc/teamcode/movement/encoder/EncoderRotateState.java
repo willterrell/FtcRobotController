@@ -1,8 +1,5 @@
 package org.firstinspires.ftc.teamcode.movement.encoder;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.ElapsedTime;
-
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 
@@ -33,6 +30,6 @@ public class EncoderRotateState extends AbState {
     @Override
     public void run() {
         hardwareHandler.rotateWithEncoders(degrees);
-        hardwareHandler.setPowers(speed, speed, speed, speed);
+        hardwareHandler.setDriveTrainPowers(speed, speed, speed, speed);
     }
 }

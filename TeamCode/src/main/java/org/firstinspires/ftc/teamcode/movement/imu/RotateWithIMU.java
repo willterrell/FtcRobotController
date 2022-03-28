@@ -19,8 +19,8 @@ public class RotateWithIMU extends AbState {
     private double prevTime;
     private double speed;
     private boolean rising = false, prevRise = false;
-    private TelemetryObj<Double> targetAngTele, pidInputTele, errorTele, angTele;
-    private TelemetryObj<String> pidSpecificsTele;
+    private TelemetryObj targetAngTele, pidInputTele, errorTele, angTele;
+    private TelemetryObj pidSpecificsTele;
     private double p = 0.01, i = 0, d = 0.001, iD = 0, angle = 180, c = 0.0625; // 0.02 0.001 0.006 0.075
     private double initAng;
 
@@ -32,11 +32,11 @@ public class RotateWithIMU extends AbState {
         targetAngle = angle % 360;
         if (targetAngle < 0) targetAngle += 360;
         this.speed = speed;
-        targetAngTele = new TelemetryObj<>("Target Angle: ", angle);
-        pidInputTele = new TelemetryObj<>("PID Input: ");
-        pidSpecificsTele = new TelemetryObj<>("PID Specifics: ");
-        errorTele = new TelemetryObj<>("Error: ");
-        angTele = new TelemetryObj<>("Angle: ");
+        targetAngTele = new TelemetryObj("Target Angle: ", angle);
+        pidInputTele = new TelemetryObj("PID Input: ");
+        pidSpecificsTele = new TelemetryObj("PID Specifics: ");
+        errorTele = new TelemetryObj("Error: ");
+        angTele = new TelemetryObj("Angle: ");
     }
 
     public RotateWithIMU(String name, HardwareHandler hardwareHandler, double angle, double speed, double p, double i, double d, double iD, double c) {
@@ -72,7 +72,7 @@ public class RotateWithIMU extends AbState {
             timer.reset();
         }
         if (Math.abs(hardwareHandler.getPowers()[0]) < 0.1 && timer.milliseconds() > 100 && bool) {
-            hardwareHandler.setPowers(0, 0, 0, 0);
+            hardwareHandler.setDriveTrainPowers(0, 0, 0, 0);
             return nextStateMap.get("next");
         }
         return this;
@@ -90,6 +90,6 @@ public class RotateWithIMU extends AbState {
         angTele.setContent(currAngle);
         pidSpecificsTele.setContent(String.format(Locale.ENGLISH, "p:%f, i:%f, d:%f", pid.getP(), pid.getI(), pid.getD()));
         //if (Math.abs(input) > 1) input = Math.signum(input); // clips input
-        hardwareHandler.move(0, -Math.signum(input), 0, input); //Math.max(Math.min(input, 1), -1) * speed
+        hardwareHandler.moveWithPower(0, -Math.signum(input), 0, input); //Math.max(Math.min(input, 1), -1) * speed
     }
 }

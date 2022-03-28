@@ -31,7 +31,7 @@ public class ObstacleAvoidanceV1 extends AbState {
 
     @Override
     public void run() {
-        double[] obstacles = hardwareHandler.getSensorBoolean(); // we could have the left and right sensors at right angles to forward
+        double[] obstacles = hardwareHandler.doesBarcodeDetect(); // we could have the left and right sensors at right angles to forward
         double left = obstacles[0], right = obstacles[obstacles.length-1];
         boolean incrLeft = left-prevLeft > 0 && left < SideDistance, incrRight = right-prevRight > 0 && right < SideDistance;
 
@@ -44,19 +44,19 @@ public class ObstacleAvoidanceV1 extends AbState {
         }
 
         if (incrLeft && incrRight) { // think about the order of this
-            hardwareHandler.move(-1, 0, 0, Speed); // go back if we're going into a corner
+            hardwareHandler.moveWithPower(-1, 0, 0, Speed); // go back if we're going into a corner
         }
         else if (incrLeft) {
-            hardwareHandler.move(0, -1, 0, Speed); // turn right if we're going into a wall on the left
+            hardwareHandler.moveWithPower(0, -1, 0, Speed); // turn right if we're going into a wall on the left
         }
         else if (incrRight) {
-            hardwareHandler.move(0, 1, 0, Speed); // turn left if we're going into a wall on the right
+            hardwareHandler.moveWithPower(0, 1, 0, Speed); // turn left if we're going into a wall on the right
         }
         else { // prefers to avoid moving into a wall on the sides than in front
             if (left > right) { // if the path is more open on the left, turn towards there until it'ss open
-                hardwareHandler.move(0, 1, 0, Speed); // prefers left
+                hardwareHandler.moveWithPower(0, 1, 0, Speed); // prefers left
             } else { // if the path is more open on the right
-                hardwareHandler.move(0, -1, 0, Speed);
+                hardwareHandler.moveWithPower(0, -1, 0, Speed);
             }
         }
         prevLeft = left;

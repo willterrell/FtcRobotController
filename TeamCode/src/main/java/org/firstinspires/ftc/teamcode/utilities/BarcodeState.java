@@ -58,7 +58,7 @@ public class BarcodeState extends AbState {
         else { // rotates and searches for capstone
             double diff = currAngle - initAngle;
             input = (Math.abs(diff) > 20) ? -Math.signum(diff) : input;
-            hardwareHandler.move(0, input, 0, 0.3);
+            hardwareHandler.moveWithPower(0, input, 0, 0.3);
         }
     }
 }

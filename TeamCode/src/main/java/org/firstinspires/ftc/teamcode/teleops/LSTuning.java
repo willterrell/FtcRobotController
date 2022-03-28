@@ -2,67 +2,130 @@ package org.firstinspires.ftc.teamcode.teleops;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.structures.LSType;
+import org.firstinspires.ftc.teamcode.structures.PIDType;
 
-import java.io.File;
+import java.text.DecimalFormat;
 import java.util.Locale;
-
-/*
-In general, the best way to tune it will to be to halve the input (x) if it overshoots or double it
-(y) if it doesn't, until it gets to the threshold.
-
-Then, binary search the exact threshold: x+b for overshoot, y+b for not
- */
 
 @TeleOp(name="Linear Slide Tuning")
 public class LSTuning extends OpMode {
+    private boolean rA, rB, rX, rY, rLeft, rRight, rBack, rStart, pA, pB, pX, pY, pLeft, pRight, pBack, pStart, running = false, up, down; // r: rising, p: previous
+    private boolean rUp, pUp, rDown, pDown;
+    private PIDType[] coeffTypes = new PIDType[]{PIDType.P, PIDType.I, PIDType.D, PIDType.ID, PIDType.C};
+    private LSType[] lsTypes = new LSType[]{LSType.UP_LEFT, LSType.UP_RIGHT, LSType.DIFF};
+    private double[][] coeffs = new double[lsTypes.length][coeffTypes.length];
+    private double diff = 1;
+    private int coeffIndex = 0, lsIndex = 0;
     private HardwareHandler hardwareHandler;
-    private File file;
-    private double prevP = 0;
-    private boolean prevX = false, prevY = false, prevA = false, prevB = false, toggleB = false, prevBump;
-    private LSType type;
+    private DecimalFormat form = new DecimalFormat("#.##########");
+    private final ElapsedTime timer = new ElapsedTime();
+    private double time; // 0.0015 TODO add dampening
     @Override
     public void init() {
         hardwareHandler = new HardwareHandler(hardwareMap, new Position());
-        file = new File("LSPIDCoeff.json");
-        type = LSType.DIFF;
     }
 
     @Override
     public void loop() {
-        boolean x = gamepad1.x && !prevX; // ensures its on the rising edge
-        prevX = gamepad1.x;
+        // gathering inputs on the rising edge
+        rA = gamepad1.a;
+        rA = rA && ! pA;
+        pA = gamepad1.a;
 
-        boolean y = gamepad1.y && !prevY;
-        prevY = gamepad1.y;
+        rB = gamepad1.b;
+        rB = rB && ! pB;
+        pB = gamepad1.b;
 
-        boolean a = gamepad1.a && !prevA;
-        prevA = gamepad1.a;
+        rX = gamepad1.x;
+        rX = rX && ! pX;
+        pX = gamepad1.x;
 
-        boolean b = gamepad1.b && !prevB;
-        prevB = gamepad1.b;
-        if (b) toggleB = !toggleB; // toggles b
+        rY = gamepad1.y;
+        rY = rY && ! pY;
+        pY = gamepad1.y;
 
-        boolean bump = gamepad1.right_bumper && !prevBump;
-        prevBump = gamepad1.right_bumper;
+        rLeft = gamepad1.dpad_left;
+        rLeft = rLeft && !pLeft;
+        pLeft = gamepad1.dpad_left;
 
-        // disable other slides based on type
+        rRight = gamepad1.dpad_right;
+        rRight = rRight && !pRight;
+        pRight = gamepad1.dpad_right;
 
-        if (bump) {
-            if (type == LSType.UP_LEFT) type = LSType.UP_RIGHT;
-            else if (type == LSType.UP_RIGHT) type = LSType.DIFF;
-            else type = LSType.UP_LEFT;
+        rUp = gamepad1.dpad_up;
+        rUp = rUp && !pUp;
+        pUp = gamepad1.dpad_up;
+
+        rDown = gamepad1.dpad_down;
+        rDown = rDown && !pDown;
+        pDown = gamepad1.dpad_down;
+
+        rStart = gamepad1.start;
+        rStart = rStart && ! pStart;
+        pStart = gamepad1.start;
+
+        up = gamepad1.dpad_up;
+        down = gamepad1.dpad_down;
+
+        if (rStart && !running) initRun();
+
+        if (rStart && running) end();
+
+        if (rStart) running = !running;
+
+        if (running) run();
+
+        else {
+            if (rLeft || rRight) {
+                coeffIndex += (rLeft ? -1 : 0) + (rRight ? 1 : 0);
+                coeffIndex %= coeffTypes.length;
+                if (coeffIndex < 0) coeffIndex += coeffTypes.length;
+            }
+
+            if (rUp || rDown) {
+                lsIndex += (rUp ? -1 : 0) + (rDown ? 1 : 0);
+                lsIndex %= lsTypes.length;
+                if (lsIndex < 0) lsIndex += lsTypes.length;
+            }
+
+            if (rX || rB) {
+                diff *= (rX ? 10 : 1) * (rB ? 0.1 : 1);
+            }
+
+            if (rY || rA) {
+                addTypeVal(lsIndex, coeffIndex, diff * (rY ? 1 : 0) + diff * (rA ? -1 : 0));
+            }
+
+            hardwareHandler.resetSlidePosition();
+
+            // you could omit parameters but could help with concurrency errors
+            telemetry.addData("PID Type", getLSTypeName(lsIndex));
+            for (int i = 0; i < coeffs[lsIndex].length; i++) { // adds telemetry for each coefficient (P, I, D, C)
+                telemetry.addData(getCoeffTypeName(i), coeffs[lsIndex][i]);
+            }
+            telemetry.addData("", ""); // line break
+            telemetry.addData("What you're changing:", "");
+            telemetry.addData("s: ", form.format(diff));
+            telemetry.addData(getTypeName(lsIndex, coeffIndex) + ": ", form.format(getTypeVal(lsIndex, coeffIndex)));
         }
+    }
 
-        if (type == LSType.UP_LEFT) {
+    private void end() {
+        hardwareHandler.moveSlidesWithPower(0,0);
+    }
+
+    private void initRun() {
+        if (lsIndex == 0) {
             hardwareHandler.disableLS(LSType.UP_LEFT, true);
             hardwareHandler.disableLS(LSType.UP_RIGHT, false);
             hardwareHandler.disableLS(LSType.DIFF, false);
         }
-        else if (type == LSType.UP_RIGHT) {
+        else if (lsIndex == 1) {
             hardwareHandler.disableLS(LSType.UP_LEFT, false);
             hardwareHandler.disableLS(LSType.UP_RIGHT, true);
             hardwareHandler.disableLS(LSType.DIFF, false);
@@ -72,53 +135,37 @@ public class LSTuning extends OpMode {
             hardwareHandler.disableLS(LSType.UP_RIGHT, true);
             hardwareHandler.disableLS(LSType.DIFF, true);
         }
+        hardwareHandler.setLSPIDCoeff(coeffs[lsIndex][0],coeffs[lsIndex][1],coeffs[lsIndex][2], coeffs[lsIndex][3], coeffs[lsIndex][4],lsTypes[lsIndex]);
+        hardwareHandler.setSlideSetpoint(2700);
+    }
 
+    private void run() {
+        int[] positions = hardwareHandler.getLSEncoderPosition();
+        hardwareHandler.updateSlides();
+        telemetry.addData("Left Position", positions[0]);
+        telemetry.addData("Right Position", positions[1]);
+        telemetry.addData("Target", 2700);
+    }
 
-        double[] tele = hardwareHandler.updateSlides();
-        hardwareHandler.moveSlide(200 * (gamepad1.dpad_up ? 1: 0) - 200 * (gamepad1.dpad_down ? 1: 0)); // ? is ternary operator (basically if statement)
+    private void addTypeVal(int lsIndex, int coeffIndex, double add) {
+        coeffs[lsIndex][coeffIndex] += add;
+    }
 
-        double[] coeff = hardwareHandler.getLSPIDCoeff(type);
+    private String getTypeName(int lsIndex, int coeffIndex) {
+        return String.format(Locale.ENGLISH, "(%s,%s)", getLSTypeName(lsIndex),getCoeffTypeName(coeffIndex));
+    }
 
-        if (toggleB) { // binary search coeff, second part
-            double diff = Math.abs(coeff[0] - prevP);
-            if (x) {
-                hardwareHandler.setLSPIDCoeff(coeff[0] - 0.5 * diff, coeff[1], coeff[2], type);
-                prevP = coeff[0];
-            }
+    private String getLSTypeName(int lsIndex) {
+        LSType lsType = lsTypes[lsIndex];
+        return lsType.toString();
+    }
 
-            else if (y) {
-                hardwareHandler.setLSPIDCoeff(coeff[0] + 0.5 * diff, coeff[1], coeff[2], type);
-                prevP = coeff[0];
-            }
-        }
+    private String getCoeffTypeName(int coeffIndex) {
+        PIDType coeffType = coeffTypes[coeffIndex];
+        return coeffType.toString();
+    }
 
-        else { // halve or double p coefficient, first part
-            if (x) {
-                hardwareHandler.setLSPIDCoeff(0.5 * coeff[0], coeff[1], coeff[2], type);
-                prevP = coeff[0];
-            }
-            else if (y) {
-                hardwareHandler.setLSPIDCoeff(2.0 * coeff[0], coeff[1], coeff[2], type);
-                prevP = coeff[0];
-            }
-        }
-
-        telemetry.addData("PID P: ", coeff[0]);
-        int[] lsPos = hardwareHandler.getLSPos();
-        telemetry.addData("LS Pos: ", String.format(Locale.ENGLISH, "{%d, %d}", lsPos[0], lsPos[1]));
-        telemetry.addData("LS left in:", tele[0]);
-        telemetry.addData("LS right in:", tele[1]);
-        telemetry.addData("LS Target Position:", hardwareHandler.getlSTargetPos());
-
-        /*if (a) { // serialize coefficient to object
-            JSONObject json = new JSONObject();
-            try {
-                json.put("upKP", coeff[0]).put("upKI", coeff[1]).put("upKD", 0);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            ReadWriteFile.writeFile(file, json.toString());
-        }*/
-
+    private double getTypeVal(int lsIndex, int coeffIndex) {
+        return coeffs[lsIndex][coeffIndex];
     }
 }

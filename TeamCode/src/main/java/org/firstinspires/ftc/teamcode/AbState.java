@@ -13,7 +13,7 @@ import java.util.Set;
 
 public abstract class AbState { // this is basically a decorator pattern
     protected String name;
-    protected AbState currentState = this;
+    private AbState[] subStates;
     private HashMap<String, AbState> nextStateMap;
     private ArrayList<TelemetryObj> teleArr;
     public AbState(String name, String ...nextStateName){
@@ -30,15 +30,23 @@ public abstract class AbState { // this is basically a decorator pattern
     }
 
     public ArrayList<TelemetryObj> getTelemetries() {
-        return teleArr;
+        ArrayList<TelemetryObj> telesIncludingSub = new ArrayList<>();
+        telesIncludingSub.add(new TelemetryObj("Name", name));
+        telesIncludingSub.addAll(teleArr);
+        for (AbState state : subStates) {
+            telesIncludingSub.add(new TelemetryObj("",""));
+            telesIncludingSub.add(new TelemetryObj("Name", state.getName()));
+            telesIncludingSub.addAll(state.getTelemetries());
+        }
+        return telesIncludingSub;
     }
 
     protected void addTele(TelemetryObj tele) {
         teleArr.add(tele);
     }
 
-    public AbState getCurrentState(){
-        return currentState;
+    protected void setSubStates(AbState... abStates){
+        subStates = abStates;
     }
 
     public abstract void init(); // expected to be run in next
@@ -50,8 +58,6 @@ public abstract class AbState { // this is basically a decorator pattern
         AbState nextState = next(nextStateMap);
         if (!nextState.equals(this)) {
             nextState.init();
-
-            TelemetryFactory.add(new TelemetryObj<>(nextState.getName(), " is initialized!"));
         }
         return nextState;
     }

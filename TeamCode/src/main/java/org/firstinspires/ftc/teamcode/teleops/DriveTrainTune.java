@@ -108,7 +108,7 @@ public class DriveTrainTune extends OpMode {
     }
 
     private void end() {
-        hardwareHandler.move(0, 0, 0, 0);
+        hardwareHandler.moveWithPower(0, 0, 0, 0);
     }
 
     private void init(double p, double i, double d, double iD, double c, double angle) {

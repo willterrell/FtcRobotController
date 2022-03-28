@@ -8,8 +8,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
-import org.firstinspires.ftc.teamcode.TelemetryFactory;
-import org.firstinspires.ftc.teamcode.movement.encoder.EncoderForwardState;
 import org.firstinspires.ftc.teamcode.movement.encoder.EncoderMove;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.structures.PosType;
@@ -28,7 +26,7 @@ public class DistanceTest extends LinearOpMode {
         forward3.putNextState("next", new PlaceholderState());
         AbState currState = forward1;
         currState.init();
-        hardwareHandler.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        hardwareHandler.setDriveTrainMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         waitForStart();
 
@@ -40,7 +38,7 @@ public class DistanceTest extends LinearOpMode {
                 telemetry.addData(obj.getCaption(), obj.getContent());
             }
             telemetry.addData("AbState name: ", currState.getName());
-            telemetry.addData("Is busy: ", hardwareHandler.isBusy());
+            telemetry.addData("Is busy: ", hardwareHandler.driveTrainIsBusy());
             telemetry.update();
         }
     }

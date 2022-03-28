@@ -1,26 +1,25 @@
 package org.firstinspires.ftc.teamcode.movement.encoder;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.movement.imu.RotateWithIMU;
+import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.structures.PosType;
-import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
 import java.util.HashMap;
 
 public class EncoderMove extends AbState {
     private HardwareHandler hardwareHandler;
-    private Position pos;
+    private Position targetPosition;
     private double angle;
     private AbState currState;
     private  double speed;
     private PosType type;
-    public EncoderMove(String name, HardwareHandler hardwareHandler, Position pos, double angle, double speed, PosType posType) {
+    public EncoderMove(String name, HardwareHandler hardwareHandler, Position targetPosition, double angle, double speed, PosType posType) {
         super(name, "next");
         this.hardwareHandler = hardwareHandler;
-        this.pos = pos;
+        this.targetPosition = targetPosition;
         this.angle = angle;
         this.speed = speed;
         type = posType;
@@ -33,28 +32,28 @@ public class EncoderMove extends AbState {
     @Override
     public void init() { // remember: angle -= angleTo;
         if (type == PosType.ABSOLUTE) {
-            Position curr = hardwareHandler.getEncoderPosition();
+            Position curr = hardwareHandler.getVirtualPosition();
             double currAngle = hardwareHandler.getIMUZAngle();
-            hardwareHandler.setEncoderPosition(pos);
-            pos = hardwareHandler.normalize(pos, curr, currAngle); // check this
+            hardwareHandler.setVirtualPosition(targetPosition);
+            targetPosition = hardwareHandler.findRelativeDifference(curr, targetPosition, currAngle); // check this
             angle = angle - currAngle;
 
         }
         else {
-            hardwareHandler.addEncoderPosition(pos);
+            hardwareHandler.addToVirtualPosition(targetPosition);
         }
 
-        double angleTo = (pos.y != 0) ? Math.toDegrees(Math.atan(pos.x/pos.y)) : (pos.x > 0) ? 90 : -90; // y is forward
-        if (pos.x == 0 && pos.y == 0) angleTo = 0;
+        double angleTo = (targetPosition.y != 0) ? Math.toDegrees(Math.atan(targetPosition.x/ targetPosition.y)) : (targetPosition.x > 0) ? 90 : -90; // y is forward
+        if (targetPosition.x == 0 && targetPosition.y == 0) angleTo = 0;
         /*if (pos.x < 0) angleTo += 180; // makes sure atan covers 2nd and 3rd quadrants
         if (angleTo > 0) angleTo += 360; // makes sure angle is positive
         if (angleTo > 180) angleTo -= 360; // gets best direction for turning*/
-        double distanceTo = distance(pos.x, pos.y);
+        double distanceTo = distance(targetPosition.x, targetPosition.y);
         /*if (Math.abs(angleTo) > 90) { // optimizes turning with backwards movement
             distanceTo *= -1;
             angleTo = 90 * Math.signum(angleTo) - angleTo;
         }*/
-        if (pos.y < 0) {
+        if (targetPosition.y < 0) {
             distanceTo *= -1;
         }
         angle -= angleTo;
@@ -65,18 +64,23 @@ public class EncoderMove extends AbState {
 
         rotateTo.putNextState("next", moveTo);
         moveTo.putNextState("next", finalRotate);
-        finalRotate.putNextState("next", super.getNextState("next"));
+        finalRotate.putNextState("next", new PlaceholderState());
         currState = rotateTo;
         rotateTo.init();
     }
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        return currState;
+        if (currState instanceof PlaceholderState) {
+            return nextStateMap.get("next");
+        }
+        return this;
     }
 
     @Override
     public void run() {
-
+        currState.run();
+        currState = currState.next();
+        setSubStates(currState);
     }
 }
