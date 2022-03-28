@@ -15,23 +15,15 @@ import org.firstinspires.ftc.teamcode.utilities.BarcodeState;
 import org.firstinspires.ftc.teamcode.utilities.CarouselMoveState;
 import org.firstinspires.ftc.teamcode.utilities.LiftAndDropBlock;
 
-@Autonomous(name="Draft Auto")
-public class DraftAuto extends LinearOpMode {
+@Autonomous(name="Draft Auto C Red")
+public class DraftAutoCRed extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, new Position(DistanceUnit.INCH, 61.125, -49.5, 0, 0), 90);
-        EncoderMove moveToCarousel = new EncoderMove("moveToCarousel", hardwareHandler, new Position(DistanceUnit.INCH, 0, -30, 0, 0), 0, 0.5, PosType.RELATIVE);
-        EncoderMove moveToMiddle1 = new EncoderMove("moveToMiddle", hardwareHandler, new Position(DistanceUnit.INCH, 61.125, -11.688, 0, 0), 90, 0.5, PosType.ABSOLUTE);
-        EncoderMove moveToAlign = new EncoderMove("moveToAlign", hardwareHandler, new Position(DistanceUnit.INCH, 0, -9, 0, 0), 90, 0.3, PosType.RELATIVE);
-        //hardwareHandler.setEncoderPosition(new Position(DistanceUnit.INCH, 70.125, -11.688, 0, 0));
-        EncoderMove moveToHub = new EncoderMove("moveToHub", hardwareHandler, new Position(DistanceUnit.INCH, 23.375, -11.688, 0, 0), 90, 0.5, PosType.ABSOLUTE);
-        EncoderMove moveToMiddle2 = new EncoderMove("moveToMiddle", hardwareHandler, new Position(DistanceUnit.INCH, 61.125, -11.688, 0, 0), 0, 0.5, PosType.ABSOLUTE);
-        EncoderMove moveToGarage = new EncoderMove("moveToHub", hardwareHandler, new Position(DistanceUnit.INCH, 0, 50, 0, 0), 0,1, PosType.RELATIVE);
-        moveToCarousel.putNextState("next", moveToMiddle1);
-        moveToMiddle1.putNextState("next", moveToAlign);
-        moveToAlign.putNextState("next", moveToHub);
-        moveToHub.putNextState("next", moveToMiddle2);
-        moveToMiddle2.putNextState("next", moveToGarage);
+        EncoderMove moveToCarousel = new EncoderMove("moveToCarousel", hardwareHandler, new Position(DistanceUnit.INCH, 0, -23, 0, 0), 0, 0.5, PosType.RELATIVE);
+        EncoderMove moveToGarage = new EncoderMove("moveToHub", hardwareHandler, new Position(DistanceUnit.INCH, 0, 100, 0, 0), 0,3, PosType.RELATIVE);
+        moveToCarousel.putNextState("next", moveToGarage);
+
         AbState currState = moveToCarousel;
         currState.init();
 

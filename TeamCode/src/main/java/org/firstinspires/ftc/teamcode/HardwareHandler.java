@@ -55,9 +55,13 @@ public class HardwareHandler {
     private DcMotor.RunMode currRunMode;
 
     private Position currPos;
-    private double currAngle;
+    private double currAngle, initAngle;
 
     public HardwareHandler(HardwareMap hardwareMap, Position currPos) {
+        this(hardwareMap, currPos, 0);
+    }
+
+    public HardwareHandler(HardwareMap hardwareMap, Position currPos, double initAngle) {
         this.hardwareMap = hardwareMap;
         // Motor initiations here
         leftFront = (DcMotorEx) hardwareMap.dcMotor.get("leftFront");
@@ -110,6 +114,7 @@ public class HardwareHandler {
         //assert(imu.isSystemCalibrated()): "Calibrate the IMU";
 
         this.currPos = currPos;
+        this.initAngle = initAngle;
     }
 
 
@@ -173,11 +178,12 @@ public class HardwareHandler {
 
     public double[] getMotorPositions() {return new double[]{leftFront.getCurrentPosition(), rightFront.getCurrentPosition(), leftRear.getCurrentPosition(), rightRear.getCurrentPosition()};}
 
-    public void addEncoderPosition(Position pos) {
-        double x = currPos.x + pos.x, y = currPos.y + pos.y;
+    public void addEncoderPosition(Position pos, double angle) {
+        pos = normalize(new Position(DistanceUnit.INCH, 0, 0, 0, 0), pos, angle); // accounts for angle when adding position
+        double x = currPos.x + pos.x * Math.cos(Math.toDegrees(angle)), y = currPos.y + pos.y * Math.sin(Math.toDegrees(angle));
         x = (Math.abs(x) > 70.125) ? 70.125 * Math.signum(x) : x; // clips position to the field
         y = (Math.abs(y) > 70.125) ? 70.125 * Math.signum(y) : y;
-        currPos = addPositions(currPos, pos);
+        currPos = new Position(DistanceUnit.INCH, x, y, currPos.z, 0);
     }
 
     public double getEncoderAngle() {
@@ -187,6 +193,8 @@ public class HardwareHandler {
     public void addEncoderAngle(double angle) {
         currAngle += angle;
     }
+
+    public void setEncoderAngle(double angle){currAngle = angle;}
 
     public void setEncoderPosition(Position pos) {
         currPos = pos;
@@ -274,7 +282,7 @@ public class HardwareHandler {
 
     public double getIMUZAngle() { // gives current position as a double list formatted [x, y, r]
         currAngle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
-        return currAngle;
+        return currAngle + initAngle;
     }
 
     public Position getIMUPosition() {
@@ -441,6 +449,7 @@ public class HardwareHandler {
     }
 
     public Position addPositions(Position pos1, Position pos2) {
+
         return new Position(DistanceUnit.INCH, pos1.x + pos2.x, pos1.y + pos2.y, pos1.z + pos2.z, 0);
     }
 
