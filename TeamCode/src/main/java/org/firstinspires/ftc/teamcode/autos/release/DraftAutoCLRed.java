@@ -38,6 +38,12 @@ public class DraftAutoCLRed extends LinearOpMode {
         EncoderStrafe moveToGarage1 = new EncoderStrafe("moveToGarage1", hardwareHandler, -24, 1);
         EncoderMove moveToGarage2 = new EncoderMove("moveToGarage2", hardwareHandler, new Position(DistanceUnit.INCH, 0, 48, 0, 0), 0, 1, PosType.RELATIVE);
 
+        moveBit.putNextState("next", raise);
+        raise.putNextState("next",moveToCarousel);
+        moveToCarousel.putNextState("next", carousel);
+        carousel.putNextState("next", moveToMiddle1);
+        moveToMiddle1.putNextState("next", moveToHub);
+
         moveToHub.putNextState("next", doBarcode);
         doBarcode.putNextState("next", rotate);
         rotate.putNextState("next", moveToGarage1);
