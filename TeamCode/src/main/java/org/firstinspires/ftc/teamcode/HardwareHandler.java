@@ -41,23 +41,31 @@ public class HardwareHandler {
     TODO
      change wheel diameter and robot length
      */
-    private final double wheelDiameter = 4; // in inches
+    private final double wheelDiameter = 3.75; // in inches
     private final double width = 0.31;
     private final double length = 0.19;
     private final int ticksPerRotation = 1120;
-    private int lsSetpoint = 0;
+    private int lsSetpoint = 0, leftSetpoint = 0, rightSetpoint = 0;
 
     private PIDController upRLSPID, upLLSPID, diffLSPID;
     private boolean upRDis = true, upLDis = true, diffDis = true;
-    private double upRKP = 0.0009562, upRKI = 0.000001, upRKD = 0, upRKID = 0, upRKC = 0, upLKP = 0.001660, upLKI = 0.000001, upLKD = 0, upLKID = 0, upLKC = 0, dKP = 0.001679, dKI = 0.000001, dKD = 0, dKID = 0, dKC = 0; // coefficients for linearSlidePID 1 and 2
+    private double upRKP = 0.002, upRKI = 0, upRKD = 0, upRKID = 0, upRKC = 0.1, upLKP = 0.003, upLKI = 0, upLKD = 0, upLKID = 0, upLKC = 0.1, dKP = 0.002, dKI = 0, dKD = 0, dKID = 0, dKC = 0.1; // coefficients for linearSlidePID 1 and 2
     // it might just be better to have it only be a p controller since the target is changing
+    private boolean prevLowerLimit = true;
+    private int initSlidePos = 0;
 
     private DcMotor.RunMode currRunMode;
 
     private Position currPos;
-    private double currAngle;
+    private double initAngle;
+
+    // TODO INITIAL ANGLE
 
     public HardwareHandler(HardwareMap hardwareMap, Position currPos) {
+        this(hardwareMap, currPos, 0);
+    }
+
+    public HardwareHandler(HardwareMap hardwareMap, Position currPos, double initAngle) {
         this.hardwareMap = hardwareMap;
         // Motor initiations here
         leftFront = (DcMotorEx) hardwareMap.dcMotor.get("leftFront");
@@ -87,7 +95,6 @@ public class HardwareHandler {
         rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
         rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
         linearSlideLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        linearSlideRight.setDirection(DcMotorSimple.Direction.REVERSE);
         input.setDirection(DcMotorSimple.Direction.REVERSE);
         carousel.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -111,6 +118,7 @@ public class HardwareHandler {
         //assert(imu.isSystemCalibrated()): "Calibrate the IMU";
 
         this.currPos = currPos;
+        this.initAngle = initAngle;
     }
 
 
@@ -120,13 +128,31 @@ public class HardwareHandler {
      */
 
 
+    public void moveWithVelocity(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
+        //assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
+        if (currRunMode != DcMotor.RunMode.RUN_WITHOUT_ENCODER) setDriveTrainMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        speed = Math.abs(speed)*2000;
+        double total = Math.abs(d) + Math.abs(r);
+        if (d == 0 && r == 0 && s == 0) {
+            leftFront.setPower(0);
+            leftRear.setPower(0);
+            rightFront.setPower(0);
+            rightRear.setPower(0);
+        }
+        else {
+            leftFront.setVelocity((d - r + s) / total * speed);
+            leftRear.setVelocity((d - r - s) / total * speed);
+            rightFront.setVelocity((d + r + s) / total * speed);
+            rightRear.setVelocity((d + r - s) / total * speed);
+        }
+    }    // add motor type assertion or change
+
     public void moveWithPower(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
         //assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
-        // add motor type assertion or change
         if (currRunMode != DcMotor.RunMode.RUN_WITHOUT_ENCODER) setDriveTrainMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         speed = Math.abs(speed);
         double total = Math.abs(d) + Math.abs(r);
-        if (d == 0 && r == 0) {
+        if (d == 0 && r == 0 && s == 0) {
             leftFront.setPower(0);
             leftRear.setPower(0);
             rightFront.setPower(0);
@@ -139,6 +165,7 @@ public class HardwareHandler {
             rightRear.setPower((d + r - s) / total * speed);
         }
     }
+
 
     public double[] getVelocities() {
         return new double[]{leftFront.getVelocity(), leftRear.getVelocity(), rightFront.getVelocity(), rightRear.getVelocity()};
@@ -175,25 +202,17 @@ public class HardwareHandler {
 
     public double[] getEncoderPositions() {return new double[]{leftFront.getCurrentPosition(), rightFront.getCurrentPosition(), leftRear.getCurrentPosition(), rightRear.getCurrentPosition()};}
 
-    public void addToVirtualPosition(Position pos) {
-        double x = currPos.x + pos.x, y = currPos.y + pos.y;
+    public void addToVirtualPosition(Position pos, double angle) {
+        pos = findRelativeDifference(new Position(DistanceUnit.INCH, 0, 0, 0, 0), pos, angle); // accounts for angle when adding position
+        double x = currPos.x + pos.x * Math.cos(Math.toDegrees(angle)), y = currPos.y + pos.y * Math.sin(Math.toDegrees(angle));
         x = (Math.abs(x) > 70.125) ? 70.125 * Math.signum(x) : x; // clips position to the field
         y = (Math.abs(y) > 70.125) ? 70.125 * Math.signum(y) : y;
-        currPos = addPositions(currPos, pos);
-    }
-
-    public double getVirtualAngle() {
-        return currAngle;
-    }
-
-    public void addToVirtualAngle(double angle) {
-        currAngle += angle;
+        currPos = new Position(DistanceUnit.INCH, x, y, currPos.z, 0);
     }
 
     public void setVirtualPosition(Position pos) {
         currPos = pos;
     }
-
 
     public void setDriveTrainPowers(double lf, double lr, double rf, double rr) {
         leftFront.setPower(lf);
@@ -220,10 +239,10 @@ public class HardwareHandler {
     public void setDriveTrainEncoderTargets(int tickLF, int tickRF, int tickLR, int tickRR) {
         setDriveTrainMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        leftFront.setTargetPosition(-tickLF - leftFront.getCurrentPosition()); // 3.125 is for gearing
-        rightFront.setTargetPosition(-tickRF - rightFront.getCurrentPosition());
-        leftRear.setTargetPosition(-tickLR - leftRear.getCurrentPosition());
-        rightRear.setTargetPosition(-tickRR - rightRear.getCurrentPosition());
+        leftFront.setTargetPosition(-(tickLF + leftFront.getCurrentPosition())); // 3.125 is for gearing
+        rightFront.setTargetPosition(-(tickRF + rightFront.getCurrentPosition()));
+        leftRear.setTargetPosition(-(tickLR + leftRear.getCurrentPosition()));
+        rightRear.setTargetPosition(-(tickRR + rightRear.getCurrentPosition()));
 
         setDriveTrainMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
@@ -232,14 +251,24 @@ public class HardwareHandler {
         setDriveTrainEncoderTargets(ticks, ticks, ticks, ticks);
     }
 
+    public void setEncoderTargetsStrafe(int ticks) {
+        setDriveTrainEncoderTargets(ticks, ticks, -ticks, -ticks);
+    }
+
     @Deprecated
     public void setEncoderTargetsRotate(int ticks) { // CCW is +
         setDriveTrainEncoderTargets(ticks, -ticks, ticks, -ticks);
     }
 
     public void goForwardWithEncoders(double distance) { // only needs to be run once
-        int ticks = (int) (distance * ticksPerRotation / Math.PI / wheelDiameter * 48 / (50.5));
+        int ticks = (int) (distance * ticksPerRotation / Math.PI / wheelDiameter * (4*12)/(3*12+8)); // TODO Maybe fit this to y=mx+b instead of y=mx for stopping error']
+
         setEncoderTargetsForward(ticks);
+    }
+
+    public void strafeWithEncoders(double distance) {
+        int ticks = (int) distance * 100 * 48 / 39;
+        setEncoderTargetsStrafe(ticks);
     }
 
     @Deprecated
@@ -270,8 +299,7 @@ public class HardwareHandler {
     }
 
     public double getIMUZAngle() { // gives current position as a double list formatted [x, y, r]
-        currAngle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
-        return currAngle;
+        return initAngle + imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
     }
 
     public Position getIMUPosition() {
@@ -298,8 +326,8 @@ public class HardwareHandler {
      */
 
     public double[] updateSlides() {
-        int leftPos = linearSlideLeft.getCurrentPosition();
-        int rightPos = linearSlideRight.getCurrentPosition();
+        int leftPos = linearSlideLeft.getCurrentPosition() - initSlidePos;
+        int rightPos = linearSlideRight.getCurrentPosition() - initSlidePos;
         int diff = leftPos - rightPos;
 
         double upLInput = upLLSPID.getInput(lsSetpoint - leftPos);
@@ -308,16 +336,21 @@ public class HardwareHandler {
 
         double kUL = (upLDis ? 1 : 0);
         double kUR = (upRDis ? 1 : 0);
-        double kDiff = (diffDis ? 1 : 0);
+        double kDiff = (diffDis ? 0.5 : 0);
 
         moveSlidesWithPower(kUL*upLInput - kDiff*diffInput, kUR*upRInput + kDiff*diffInput);
         return new double[]{kUL*upLInput - kDiff*diffInput, kUR*upRInput + kDiff*diffInput}; // returns for telemetry, would be better as a getter but im lazy
     }
 
-    public void addSlideSetpoint(int ticks) {
+    public void addSlideSetpoint(int ticks, boolean lowerLimit) {
         final int maxPos = 5070;
         int sum = lsSetpoint + ticks;
-        if (sum <= maxPos) lsSetpoint = sum;
+        if (sum <= maxPos && (sum >= 0 || !lowerLimit)) lsSetpoint = sum;
+        if (prevLowerLimit && !lowerLimit) {
+            initSlidePos = linearSlideLeft.getCurrentPosition();
+            lsSetpoint = 0;
+        }
+        prevLowerLimit = lowerLimit;
     }
 
     public void setSlideSetpoint(int ticks) {
@@ -328,7 +361,14 @@ public class HardwareHandler {
         return lsSetpoint;
     }
 
-    public int[] getLSEncoderPosition(){return new int[] {linearSlideLeft.getCurrentPosition(), linearSlideRight.getCurrentPosition()};}
+    public boolean areSlidesAtSetpoint(int setPrecision, int diffPrecision) {
+        int leftPos = linearSlideLeft.getCurrentPosition() - initSlidePos, rightPos = linearSlideRight.getCurrentPosition() - initSlidePos;
+        int diffLeft = Math.abs(leftPos-lsSetpoint), diffRight = Math.abs(rightPos-lsSetpoint);
+        int diffLR = Math.abs(leftPos-rightPos);
+        return diffLeft < setPrecision && diffRight < setPrecision && diffLR < diffPrecision;
+    }
+
+    public int[] getLSEncoderPosition(){return new int[] {linearSlideLeft.getCurrentPosition() - initSlidePos, linearSlideRight.getCurrentPosition() - initSlidePos};}
 
     public void moveSlidesWithPower(double power1, double power2) {
         /*if (linearSlideAtLimit(linearSlideLeft.getCurrentPosition(), power1)) linearSlideLeft.setPower(0);
@@ -397,13 +437,31 @@ public class HardwareHandler {
     }
 
     public void resetSlidePosition() {
-        if (linearSlideRight.getCurrentPosition() > 500) {
+        if (linearSlideRight.getCurrentPosition() - initSlidePos > 500) {
             linearSlideRight.setPower(-0.3);
         }
         else {
             linearSlideRight.setPower(0);
         }
-        if (linearSlideLeft.getCurrentPosition() > 500) {
+        if (linearSlideLeft.getCurrentPosition() - initSlidePos > 500) {
+            linearSlideLeft.setPower(-0.3);
+        }
+        else {
+            linearSlideLeft.setPower(0);
+        }
+    }
+
+    public void resetToDiffPosition() {
+        if (linearSlideRight.getCurrentPosition() - initSlidePos > 2000) {
+            linearSlideRight.setPower(-0.3);
+        }
+        else if (linearSlideRight.getCurrentPosition() - initSlidePos > 1500) {
+            linearSlideRight.setPower(0);
+        }
+        else {
+            linearSlideRight.setPower(0.3);
+        }
+        if (linearSlideLeft.getCurrentPosition() - initSlidePos > 500) {
             linearSlideLeft.setPower(-0.3);
         }
         else {

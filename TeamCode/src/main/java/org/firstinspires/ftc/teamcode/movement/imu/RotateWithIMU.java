@@ -21,7 +21,7 @@ public class RotateWithIMU extends AbState {
     private boolean rising = false, prevRise = false;
     private TelemetryObj targetAngTele, pidInputTele, errorTele, angTele;
     private TelemetryObj pidSpecificsTele;
-    private double p = 0.01, i = 0, d = 0.001, iD = 0, angle = 180, c = 0.0625; // 0.02 0.001 0.006 0.075
+    private double p = 0.04, i = 0, d = -0.015, iD = 0, angle = 180, c = 0.14; // 0.02 0.001 0.006 0.075
     private double initAng;
 
     //TODO Look into feedforward pid
@@ -50,7 +50,7 @@ public class RotateWithIMU extends AbState {
 
     @Override
     public void init() { //0.001 ; 0.0125, 0.00035, 0.03 is good
-        pid = new PIDController(p, i, d, iD, c, 1); // 0.004, 0.004, 0.00005, 0.1
+        pid = new PIDController(p, i, d, iD, c, 0.75); // 0.004, 0.004, 0.00005, 0.1
         currAngle = hardwareHandler.getIMUZAngle();
         addTele(targetAngTele);
         addTele(pidInputTele);
@@ -65,7 +65,7 @@ public class RotateWithIMU extends AbState {
     public AbState next(HashMap<String, AbState> nextStateMap) {
         double error = targetAngle - currAngle;
         if (Math.abs(targetAngle - currAngle) > 180) error -= 360 * Math.signum(error);
-        boolean bool = Math.abs(error) < 1;
+        boolean bool = Math.abs(error) <= 1;
         rising = bool && !prevRise;
         prevRise = bool;
         if (rising) { // within 5 degrees of target

@@ -24,7 +24,7 @@ public class LSTuning extends OpMode {
     private HardwareHandler hardwareHandler;
     private DecimalFormat form = new DecimalFormat("#.##########");
     private final ElapsedTime timer = new ElapsedTime();
-    private double time; // 0.0015 TODO add dampening
+    private double time; //r: p=0.002, c=0.1, l: p=0.003, c=0.1 TODO add dampening
     @Override
     public void init() {
         hardwareHandler = new HardwareHandler(hardwareMap, new Position());
@@ -101,7 +101,8 @@ public class LSTuning extends OpMode {
                 addTypeVal(lsIndex, coeffIndex, diff * (rY ? 1 : 0) + diff * (rA ? -1 : 0));
             }
 
-            hardwareHandler.resetSlidePosition();
+            if (lsTypes[lsIndex] == LSType.DIFF) hardwareHandler.resetToDiffPosition();
+            else hardwareHandler.resetSlidePosition();
 
             // you could omit parameters but could help with concurrency errors
             telemetry.addData("PID Type", getLSTypeName(lsIndex));
@@ -131,8 +132,8 @@ public class LSTuning extends OpMode {
             hardwareHandler.disableLS(LSType.DIFF, false);
         }
         else {
-            hardwareHandler.disableLS(LSType.UP_LEFT, true);
-            hardwareHandler.disableLS(LSType.UP_RIGHT, true);
+            hardwareHandler.disableLS(LSType.UP_LEFT, false);
+            hardwareHandler.disableLS(LSType.UP_RIGHT, false);
             hardwareHandler.disableLS(LSType.DIFF, true);
         }
         hardwareHandler.setLSPIDCoeff(coeffs[lsIndex][0],coeffs[lsIndex][1],coeffs[lsIndex][2], coeffs[lsIndex][3], coeffs[lsIndex][4],lsTypes[lsIndex]);
@@ -141,10 +142,12 @@ public class LSTuning extends OpMode {
 
     private void run() {
         int[] positions = hardwareHandler.getLSEncoderPosition();
-        hardwareHandler.updateSlides();
+        double[] input = hardwareHandler.updateSlides();
         telemetry.addData("Left Position", positions[0]);
         telemetry.addData("Right Position", positions[1]);
         telemetry.addData("Target", 2700);
+        telemetry.addData("input 1", input[0]);
+        telemetry.addData("input 2", input[1]);
     }
 
     private void addTypeVal(int lsIndex, int coeffIndex, double add) {

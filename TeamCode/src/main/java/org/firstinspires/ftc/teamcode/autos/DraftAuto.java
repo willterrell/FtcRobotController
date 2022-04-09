@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.utilities.BarcodeState;
 import org.firstinspires.ftc.teamcode.utilities.CarouselMoveState;
 import org.firstinspires.ftc.teamcode.utilities.LiftAndDropBlock;
 
-@Autonomous(name="Draft Auto")
+//@Autonomous(name="Draft Auto")
 public class DraftAuto extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -41,9 +41,6 @@ public class DraftAuto extends LinearOpMode {
             currState = currState.next();
 
             for (TelemetryObj obj : currState.getTelemetries()) {
-                telemetry.addData(obj.getCaption(), obj.getContent());
-            }
-            for (TelemetryObj obj : TelemetryFactory.getTelemetries()) {
                 telemetry.addData(obj.getCaption(), obj.getContent());
             }
             telemetry.addData("AbState name: ", currState.getName());

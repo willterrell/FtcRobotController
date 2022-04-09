@@ -9,7 +9,6 @@ import java.util.HashMap;
 
 public class CarouselMoveState extends AbState {
     private ElapsedTime timer;
-    private double startTime;
     private final double deltaTime;
     private final HardwareHandler hardwareHandler;
     private final double power;
@@ -22,12 +21,15 @@ public class CarouselMoveState extends AbState {
 
     @Override
     public void init() {
-        startTime = timer.milliseconds();
+        timer = new ElapsedTime();
     }
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        if (timer.milliseconds() > startTime + deltaTime) return nextStateMap.get("next");
+        if (timer.milliseconds() > deltaTime){
+            hardwareHandler.moveCarousel(0);
+            return nextStateMap.get("next");
+        }
         else return this;
     }
 

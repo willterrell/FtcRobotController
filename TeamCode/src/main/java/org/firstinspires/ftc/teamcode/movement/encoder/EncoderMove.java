@@ -4,8 +4,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
-import org.firstinspires.ftc.teamcode.TelemetryFactory;
 import org.firstinspires.ftc.teamcode.movement.imu.RotateWithIMU;
+import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.structures.PosType;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
@@ -34,17 +34,15 @@ public class EncoderMove extends AbState {
     @Override
     public void init() { // remember: angle -= angleTo;
         if (type == PosType.ABSOLUTE) {
-            Position curr = hardwareHandler.getEncoderPosition();
+            Position curr = hardwareHandler.getVirtualPosition();
             double currAngle = hardwareHandler.getIMUZAngle();
-            hardwareHandler.setEncoderPosition(pos);
-            pos = hardwareHandler.normalize(curr, pos, currAngle); // check this
+            hardwareHandler.setVirtualPosition(pos);
+            pos = hardwareHandler.findRelativeDifference(curr, pos, currAngle); // check this
             angle = angle - currAngle;
-            TelemetryFactory.add(new TelemetryObj("pos x", pos.x));
-            TelemetryFactory.add(new TelemetryObj("pos x", pos.y));
 
         }
         else {
-            hardwareHandler.addEncoderPosition(pos, hardwareHandler.getIMUZAngle());
+            hardwareHandler.addToVirtualPosition(pos, hardwareHandler.getIMUZAngle() );
         }
 
         double angleTo = (pos.y != 0) ? Math.toDegrees(Math.atan(pos.x/pos.y)) : (pos.x > 0) ? 90 : -90; // y is forward
@@ -75,11 +73,14 @@ public class EncoderMove extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        return currState;
+        if (currState instanceof PlaceholderState) return nextStateMap.get("next");
+        return this;
     }
 
     @Override
     public void run() {
-
+        currState.run();
+        currState = currState.next();
+        setSubStates(currState);
     }
 }

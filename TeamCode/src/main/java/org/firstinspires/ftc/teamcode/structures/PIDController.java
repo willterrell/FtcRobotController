@@ -34,7 +34,7 @@ public class PIDController {
         if (dampened) i = Math.max(Math.min(i, iD), -iD); // clips i
         d = -kD * (error - prevError);
         prevError = error;
-        c = (Math.abs(error) > minError) ? Math.signum(error) * kC : 0;
+        c = (Math.abs(error) >= minError) ? Math.signum(error) * kC : 0;
         return p + i + d + c;
     }
 

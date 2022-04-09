@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.structures.PosType;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
-@Autonomous(name="movement test")
+//@Autonomous(name="movement test")
 public class DistanceTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {

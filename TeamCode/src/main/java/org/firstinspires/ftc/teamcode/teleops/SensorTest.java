@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-@TeleOp(name="Sensor test")
+//@TeleOp(name="Sensor test")
 public class SensorTest extends OpMode {
     private DistanceSensor distanceSensor;
     @Override

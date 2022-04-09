@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
-@TeleOp(name="slide test")
+//@TeleOp(name="slide test")
 public class SlideTest extends OpMode {
     private DcMotor ls1, ls2;
     @Override

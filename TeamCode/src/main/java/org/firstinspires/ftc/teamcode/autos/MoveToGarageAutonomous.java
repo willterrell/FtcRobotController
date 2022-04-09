@@ -8,15 +8,16 @@ import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.movement.encoder.EncoderForwardState;
+import org.firstinspires.ftc.teamcode.movement.encoder.EncoderStrafe;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
-@Autonomous(name="Move to garage")
+//@Autonomous(name="Move test 2")
 public class MoveToGarageAutonomous extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, new Position());
-        AbState move = new EncoderForwardState("Move to garage" , hardwareHandler, 48, 1);
+        AbState move = new EncoderStrafe("Move to garage" , hardwareHandler, 48, 1);
         PlaceholderState placeholder = new PlaceholderState();
         move.putNextState("next", placeholder);
         AbState currState = move;

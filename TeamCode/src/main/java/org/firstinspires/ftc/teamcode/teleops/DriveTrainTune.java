@@ -15,13 +15,13 @@ import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 import java.text.DecimalFormat;
 
 
-@TeleOp(name="DriveTrainTune")
+@TeleOp(name="Rotation Tuning")
 public class DriveTrainTune extends OpMode {
     private boolean rA, rB, rX, rY, rLeft, rRight, rBack, rStart, pA, pB, pX, pY, pLeft, pRight, pBack, pStart, running = false, up, down; // r: rising, p: previous
     private PIDType currType = PIDType.P;
     private PIDType[] types = new PIDType[]{PIDType.P, PIDType.I, PIDType.D, PIDType.ID, PIDType.C};
     private int typeIndex = 0;
-    private double diff = 1, p = 0.01, i = 0, d = 0.001, iD = 0, angle = 180, c = 0.0625; // 0.00658 0.0000015, 0.001
+    private double diff = 1, p = 0.04, i = 0, d = -0.015, iD = 0, angle = 180, c = 0.14; // 0.00658 0.0000015, 0.001
     private HardwareHandler hardwareHandler;
     private AbState currState, rotate;
     private DecimalFormat form = new DecimalFormat("#.##########");
