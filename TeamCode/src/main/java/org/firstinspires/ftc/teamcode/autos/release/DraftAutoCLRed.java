@@ -45,7 +45,7 @@ public class DraftAutoCLRed extends LinearOpMode {
         moveToGarage1.putNextState("next",moveToGarage2);
         moveToGarage2.putNextState("next", new PlaceholderState());
 
-        AbState currState = moveToHub;
+        AbState currState = moveBit;
         currState.init();
         waitForStart();
 
