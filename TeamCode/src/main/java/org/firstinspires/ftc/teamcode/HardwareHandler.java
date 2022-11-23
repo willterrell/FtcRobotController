@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -27,18 +28,16 @@ public class HardwareHandler {
     private final DcMotorEx rightFront;
     private final DcMotorEx leftRear;
     private final DcMotorEx rightRear;
-    private final DcMotor linearSlideLeft;
-    private final DcMotor linearSlideRight;
-    private final DcMotor carousel;
-    private final DcMotor input;
-    private final DistanceSensor barcode;
     private BNO055IMU imu;
     private SimpsonIntegrator integrator;
-    private DistanceSensor leftDistanceSensor;
-    private DistanceSensor rightDistanceSensor;
-
     private final int msPollInterval = 100;
+    private final Servo leftClawServo, rightClawServo;
 
+    private DcMotor linearSlideLeft;
+    private DcMotor linearSlideRight;
+    private DcMotor carousel;
+    private DcMotor input;
+    private DistanceSensor barcode;
 
     /*
     TODO
@@ -76,33 +75,21 @@ public class HardwareHandler {
         rightFront = (DcMotorEx) hardwareMap.dcMotor.get("rightFront");
         rightRear = (DcMotorEx) hardwareMap.dcMotor.get("rightRear");
 
-        leftDistanceSensor = hardwareMap.get(DistanceSensor.class, "leftDistanceSensor");
-        rightDistanceSensor = hardwareMap.get(DistanceSensor.class, "rightDistanceSensor");
+        leftClawServo = hardwareMap.servo.get("leftClawServo");
+        rightClawServo = hardwareMap.servo.get("rightClawServo");
 
-        linearSlideLeft = hardwareMap.dcMotor.get("linearSlideLeft");
-        linearSlideRight = hardwareMap.dcMotor.get("linearSlideRight");
-        carousel = hardwareMap.dcMotor.get("carousel");
-        input = hardwareMap.dcMotor.get("scoop");
-        barcode = hardwareMap.get(DistanceSensor.class, "barcode");
+
 
         leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         leftRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        linearSlideLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        linearSlideRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        linearSlideLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        linearSlideRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        input.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         /*linearSlideLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         linearSlideRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);*/
 
         rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
         rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
-        linearSlideLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        input.setDirection(DcMotorSimple.Direction.REVERSE);
-        carousel.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // imu shit here, supposedly we need to calibrate it
         integrator = new SimpsonIntegrator(msPollInterval);
@@ -172,14 +159,6 @@ public class HardwareHandler {
         }
     }
 
-    public double[] getPylonSensorReadings()
-    {
-//        double[] sensorDistances = new double[2];
-//        sensorDistances[0] = leftDistanceSensor.getDistance();
-//        sensorDistances[1] = rightDistanceSensor.getDistance();
-//        return sensorDistances;
-        return null;
-    }
 
     public double[] getVelocities() {
         return new double[]{leftFront.getVelocity(), leftRear.getVelocity(), rightFront.getVelocity(), rightRear.getVelocity()};
@@ -339,6 +318,14 @@ public class HardwareHandler {
                 - LINEAR SLIDES -
      */
 
+    public DcMotor getSlideMotor(){
+        return null;
+    }
+
+    public void moveSlides(double in) {
+
+    }
+
     public double[] updateSlides() {
         int leftPos = linearSlideLeft.getCurrentPosition() - initSlidePos;
         int rightPos = linearSlideRight.getCurrentPosition() - initSlidePos;
@@ -488,6 +475,10 @@ public class HardwareHandler {
                ~ TELEOP ~
      */
 
+    public void moveClawToMax() {
+        leftClawServo.setPosition(leftClawServo.MAX_POSITION);
+        rightClawServo.setPosition(rightClawServo.MAX_POSITION);
+    }
 
     public void moveCarousel(double power) { // in is positive
         carousel.setPower(power);
