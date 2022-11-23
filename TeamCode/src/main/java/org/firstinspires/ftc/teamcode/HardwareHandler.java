@@ -34,6 +34,9 @@ public class HardwareHandler {
     private final DistanceSensor barcode;
     private BNO055IMU imu;
     private SimpsonIntegrator integrator;
+    private DistanceSensor leftDistanceSensor;
+    private DistanceSensor rightDistanceSensor;
+
     private final int msPollInterval = 100;
 
 
@@ -72,6 +75,9 @@ public class HardwareHandler {
         leftRear = (DcMotorEx) hardwareMap.dcMotor.get("leftRear");
         rightFront = (DcMotorEx) hardwareMap.dcMotor.get("rightFront");
         rightRear = (DcMotorEx) hardwareMap.dcMotor.get("rightRear");
+
+        leftDistanceSensor = hardwareMap.get(DistanceSensor.class, "leftDistanceSensor");
+        rightDistanceSensor = hardwareMap.get(DistanceSensor.class, "rightDistanceSensor");
 
         linearSlideLeft = hardwareMap.dcMotor.get("linearSlideLeft");
         linearSlideRight = hardwareMap.dcMotor.get("linearSlideRight");
@@ -166,6 +172,14 @@ public class HardwareHandler {
         }
     }
 
+    public double[] getPylonSensorReadings()
+    {
+//        double[] sensorDistances = new double[2];
+//        sensorDistances[0] = leftDistanceSensor.getDistance();
+//        sensorDistances[1] = rightDistanceSensor.getDistance();
+//        return sensorDistances;
+        return null;
+    }
 
     public double[] getVelocities() {
         return new double[]{leftFront.getVelocity(), leftRear.getVelocity(), rightFront.getVelocity(), rightRear.getVelocity()};

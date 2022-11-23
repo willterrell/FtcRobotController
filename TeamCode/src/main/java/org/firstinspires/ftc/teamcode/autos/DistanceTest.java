@@ -13,8 +13,8 @@ import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.structures.PosType;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
-//@Autonomous(name="movement test")
-public class DistanceTest extends LinearOpMode {
+@Autonomous(name="movement test")
+public class DistanceTest extends LinearOpMode { // OpMode
     @Override
     public void runOpMode() throws InterruptedException {
         HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, new Position());
