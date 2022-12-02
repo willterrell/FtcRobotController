@@ -26,14 +26,13 @@ public class EncoderForwardState extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        EncoderWaitState wait = new EncoderWaitState("Wait for forward", hardwareHandler);
+        EncoderWaitState wait = new EncoderWaitState("Wait for forward", hardwareHandler.getMotors());
         wait.putNextState("next", nextStateMap.get("next"));
         return wait;
     }
 
     @Override
     public void run() {
-        hardwareHandler.goForwardWithEncoders(inches);
-        hardwareHandler.setDriveTrainPowers(speed, speed, speed, speed); // TODO check if we only need to have positive speed
+        hardwareHandler.goForwardWithEncoders(inches, speed);
     }
 }

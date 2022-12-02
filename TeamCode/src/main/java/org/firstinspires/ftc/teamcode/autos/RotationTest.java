@@ -10,11 +10,11 @@ import org.firstinspires.ftc.teamcode.movement.imu.RotateWithIMU;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
-//@Autonomous(name="rotation test")
+@Autonomous(name="rotation test")
 public class RotationTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
-        HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, new Position());
+        HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, new Position(), telemetry);
         RotateWithIMU rotate = new RotateWithIMU("test rotate", hardwareHandler, 180, 0.3);
         rotate.putNextState("next", new PlaceholderState());
         AbState currState = rotate;

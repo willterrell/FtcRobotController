@@ -29,7 +29,7 @@ public class DriveTrainTune extends OpMode {
     private double time;
     @Override
     public void init() {
-        hardwareHandler = new HardwareHandler(hardwareMap, new Position());
+        hardwareHandler = new HardwareHandler(hardwareMap, new Position(), telemetry);
     }
 
     @Override

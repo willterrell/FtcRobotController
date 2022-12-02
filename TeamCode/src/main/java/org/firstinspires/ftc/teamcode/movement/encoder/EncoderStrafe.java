@@ -22,14 +22,13 @@ public class EncoderStrafe extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        EncoderWaitState wait = new EncoderWaitState("Wait for forward", hardwareHandler);
+        EncoderWaitState wait = new EncoderWaitState("Wait for forward", hardwareHandler.getMotors());
         wait.putNextState("next", nextStateMap.get("next"));
         return wait;
     }
 
     @Override
     public void run() {
-        hardwareHandler.strafeWithEncoders(distance);
-        hardwareHandler.setDriveTrainPowers(speed, speed, speed, speed);
+        hardwareHandler.strafeWithEncoders(distance, speed);
     }
 }

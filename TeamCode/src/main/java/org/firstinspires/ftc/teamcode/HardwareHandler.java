@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.transition.Slide;
+
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -8,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
@@ -18,56 +22,69 @@ import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.firstinspires.ftc.teamcode.movement.imu.SimpsonIntegrator;
 import org.firstinspires.ftc.teamcode.structures.LSType;
 import org.firstinspires.ftc.teamcode.structures.PIDController;
+import org.firstinspires.ftc.teamcode.structures.SlidePosition;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
+@Config
 public class HardwareHandler {
     private final HardwareMap hardwareMap;
-    private final DcMotorEx leftFront;
-    private final DcMotorEx rightFront;
-    private final DcMotorEx leftRear;
-    private final DcMotorEx rightRear;
+    private DcMotorEx leftFront;
+    private DcMotorEx rightFront;
+    private DcMotorEx leftRear;
+    private DcMotorEx rightRear;
     private BNO055IMU imu;
     private SimpsonIntegrator integrator;
     private final int msPollInterval = 100;
     private final Servo leftClawServo, rightClawServo;
 
-    private DcMotor linearSlideLeft;
-    private DcMotor linearSlideRight;
-    private DcMotor carousel;
-    private DcMotor input;
-    private DistanceSensor barcode;
+    private DcMotorEx linearSlide;
+    private DistanceSensor clawSensor;
+
+    public static double FLOATING_POWER = 0;
+    public static int ONE_CONE_POS = 0, TWO_CONE_POS = 80, THREE_CONE_POS = 160, FOUR_CONE_POS = 240, FIVE_CONE_POS = 320,
+                      SMALL_JUNCTION_POS = 1350, MEDIUM_JUNCTION_POS = 2195, LARGE_JUNCTION_POS = 3060;
+    public static double SLIDE_TICK_PER_POWER = 2000;
+    public static double KLF = 1, KLR = 0.944, KRF = 0.934825, KRR = 0.8824748;
+    public static double SLIDE_SPEED = 0.5;
+    public static int SLIDE_TOLERANCE = 10;
+
+    private int[] slidePositions = new int[] {ONE_CONE_POS, TWO_CONE_POS, THREE_CONE_POS, FOUR_CONE_POS, FIVE_CONE_POS, SMALL_JUNCTION_POS, MEDIUM_JUNCTION_POS, LARGE_JUNCTION_POS};
+    private ArrayList<SlidePosition> slidePosNames = new ArrayList<SlidePosition>(Arrays.asList(SlidePosition.values()));
 
     /*
     TODO
      change wheel diameter and robot length
      */
-    private final double wheelDiameter = 3.75; // in inches
-    private final double width = 0.31;
-    private final double length = 0.19;
-    private final int ticksPerRotation = 1120;
-    private int lsSetpoint = 0, leftSetpoint = 0, rightSetpoint = 0;
+    private int lsSetpoint = 0;
 
-    private PIDController upRLSPID, upLLSPID, diffLSPID;
-    private boolean upRDis = true, upLDis = true, diffDis = true;
-    private double upRKP = 0.002, upRKI = 0, upRKD = 0, upRKID = 0, upRKC = 0.1, upLKP = 0.003, upLKI = 0, upLKD = 0, upLKID = 0, upLKC = 0.1, dKP = 0.002, dKI = 0, dKD = 0, dKID = 0, dKC = 0.1; // coefficients for linearSlidePID 1 and 2
-    // it might just be better to have it only be a p controller since the target is changing
     private boolean prevLowerLimit = true;
     private int initSlidePos = 0;
+    private boolean prevHalt = false, prevPower = false;
+    private SlidePosition prevSlidePos;
 
     private DcMotor.RunMode currRunMode;
 
     private Position currPos;
     private double initAngle;
 
+    private Telemetry telemetry;
+
     // TODO INITIAL ANGLE
 
-    public HardwareHandler(HardwareMap hardwareMap, Position currPos) {
-        this(hardwareMap, currPos, 0);
+    public HardwareHandler(HardwareMap hardwareMap, Telemetry telemetry) {
+        this(hardwareMap, new Position(), telemetry);
     }
 
-    public HardwareHandler(HardwareMap hardwareMap, Position currPos, double initAngle) {
+    public HardwareHandler(HardwareMap hardwareMap, Position currPos, Telemetry telemetry) {
+        this(hardwareMap, currPos, 0, telemetry);
+    }
+
+    public HardwareHandler(HardwareMap hardwareMap, Position currPos, double initAngle, Telemetry telemetry) {
         this.hardwareMap = hardwareMap;
         // Motor initiations here
         leftFront = (DcMotorEx) hardwareMap.dcMotor.get("leftFront");
@@ -78,6 +95,13 @@ public class HardwareHandler {
         leftClawServo = hardwareMap.servo.get("leftClawServo");
         rightClawServo = hardwareMap.servo.get("rightClawServo");
 
+        linearSlide = (DcMotorEx) hardwareMap.dcMotor.get("linearSlide");
+
+        clawSensor = hardwareMap.get(DistanceSensor.class, "clawSensor");
+
+        leftClawServo.scaleRange(-1, 1);
+        rightClawServo.scaleRange(-1, 1);
+
 
 
         leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -85,11 +109,24 @@ public class HardwareHandler {
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        linearSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        linearSlide.setTargetPosition(0);
+        linearSlide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         /*linearSlideLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         linearSlideRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);*/
 
         rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
         rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        //linearSlide.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftRear.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightRear.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        //linearSlide.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // imu shit here, supposedly we need to calibrate it
         integrator = new SimpsonIntegrator(msPollInterval);
@@ -103,15 +140,12 @@ public class HardwareHandler {
 
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         imu.initialize(parameters);
-        
-        upLLSPID = new PIDController(upLKP, upLKI, upLKD);
-        upRLSPID = new PIDController(upRKP, upRKI, upRKD);
-        diffLSPID = new PIDController(dKP, dKI, dKD);
 
         //assert(imu.isSystemCalibrated()): "Calibrate the IMU";
 
         this.currPos = currPos;
         this.initAngle = initAngle;
+        this.telemetry = telemetry;
     }
 
 
@@ -120,31 +154,11 @@ public class HardwareHandler {
                   ~ TELEOP ~
      */
 
-
-    public void moveWithVelocity(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
-        //assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
-        if (currRunMode != DcMotor.RunMode.RUN_WITHOUT_ENCODER) setDriveTrainMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        speed = Math.abs(speed)*2000;
-        double total = Math.abs(d) + Math.abs(r);
-        if (d == 0 && r == 0 && s == 0) {
-            leftFront.setPower(0);
-            leftRear.setPower(0);
-            rightFront.setPower(0);
-            rightRear.setPower(0);
-        }
-        else {
-            leftFront.setVelocity((d - r + s) / total * speed);
-            leftRear.setVelocity((d - r - s) / total * speed);
-            rightFront.setVelocity((d + r + s) / total * speed);
-            rightRear.setVelocity((d + r - s) / total * speed);
-        }
-    }    // add motor type assertion or change
-
     public void moveWithPower(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
         //assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
         if (currRunMode != DcMotor.RunMode.RUN_WITHOUT_ENCODER) setDriveTrainMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         speed = Math.abs(speed);
-        double total = Math.abs(d) + Math.abs(r);
+        double total = Math.abs(d) + Math.abs(r) + Math.abs(s);
         if (d == 0 && r == 0 && s == 0) {
             leftFront.setPower(0);
             leftRear.setPower(0);
@@ -152,13 +166,12 @@ public class HardwareHandler {
             rightRear.setPower(0);
         }
         else {
-            leftFront.setPower((d - r + s) / total * speed);
-            leftRear.setPower((d - r - s) / total * speed);
-            rightFront.setPower((d + r + s) / total * speed);
-            rightRear.setPower((d + r - s) / total * speed);
+            leftFront.setPower((d - r - s) / total * speed * KLF);
+            leftRear.setPower((d - r + s) / total * speed * KLR); // 0.88 gotten from testing
+            rightFront.setPower((d + r + s) / total * speed * KRF);
+            rightRear.setPower((d + r - s) / total * speed * KRR);
         }
     }
-
 
     public double[] getVelocities() {
         return new double[]{leftFront.getVelocity(), leftRear.getVelocity(), rightFront.getVelocity(), rightRear.getVelocity()};
@@ -166,6 +179,10 @@ public class HardwareHandler {
 
     public double[] getPowers() {
         return new double[]{leftFront.getPower(), leftRear.getPower(), rightFront.getPower(), rightRear.getPower()};
+    }
+
+    public List<DcMotor> getMotors() {
+        return Arrays.asList(leftFront, leftRear, rightFront, rightRear);
     }
 
 
@@ -229,41 +246,50 @@ public class HardwareHandler {
         currRunMode = mode;
     }
 
-    public void setDriveTrainEncoderTargets(int tickLF, int tickRF, int tickLR, int tickRR) {
+    public void setDriveTrainEncoderTargets(int tickLF, int tickLR, int tickRF, int tickRR) {
         setDriveTrainMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        leftFront.setTargetPosition(-(tickLF + leftFront.getCurrentPosition())); // 3.125 is for gearing
-        rightFront.setTargetPosition(-(tickRF + rightFront.getCurrentPosition()));
-        leftRear.setTargetPosition(-(tickLR + leftRear.getCurrentPosition()));
-        rightRear.setTargetPosition(-(tickRR + rightRear.getCurrentPosition()));
+        leftFront.setTargetPosition(-(int)((tickLF + leftFront.getCurrentPosition()))); // 3.125 is for gearing
+        rightFront.setTargetPosition(-(int)((tickRF + rightFront.getCurrentPosition())));
+        leftRear.setTargetPosition(-(int)((tickLR + leftRear.getCurrentPosition())));
+        rightRear.setTargetPosition(-(int)((tickRR + rightRear.getCurrentPosition())));
+
+//        leftFront.setTargetPosition(-tickLF); // 3.125 is for gearing
+//        rightFront.setTargetPosition(-tickRF);
+//        leftRear.setTargetPosition(-tickLR);
+//        rightRear.setTargetPosition(-tickRR);
 
         setDriveTrainMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
-    public void setEncoderTargetsForward(int ticks) {
+    public void setEncoderTargetsForward(int ticks, double power) {
         setDriveTrainEncoderTargets(ticks, ticks, ticks, ticks);
+        setDriveTrainPowers(power, power, power, power);
     }
 
-    public void setEncoderTargetsStrafe(int ticks) {
-        setDriveTrainEncoderTargets(ticks, ticks, -ticks, -ticks);
+    public void setEncoderTargetsStrafe(int ticks, double power) {
+        setDriveTrainEncoderTargets(ticks, (int)(-ticks * 0.9895), -ticks, (int)(ticks * 0.9895));
+        setDriveTrainPowers(power, power * 0.9825, power, power * 0.9825);
     }
 
     @Deprecated
-    public void setEncoderTargetsRotate(int ticks) { // CCW is +
+    public void setEncoderTargetsRotate(int ticks, double power) { // CCW is +
         setDriveTrainEncoderTargets(ticks, -ticks, ticks, -ticks);
+        setDriveTrainPowers(power, power, power, power);
     }
 
-    public void goForwardWithEncoders(double distance) { // only needs to be run once
-        int ticks = (int) (distance * ticksPerRotation / Math.PI / wheelDiameter * (4*12)/(3*12+8)); // TODO Maybe fit this to y=mx+b instead of y=mx for stopping error']
+    public void goForwardWithEncoders(double distance, double power) { // only needs to be run once
+        int ticks = (int) (distance * 3000 / 66.5); // TODO Maybe fit this to y=mx+b instead of y=mx for stopping error']
 
-        setEncoderTargetsForward(ticks);
+        setEncoderTargetsForward(ticks, power);
     }
 
-    public void strafeWithEncoders(double distance) {
-        int ticks = (int) distance * 100 * 48 / 39;
-        setEncoderTargetsStrafe(ticks);
+    public void strafeWithEncoders(double distance, double power) {
+        int ticks = (int) (distance * 5911 / 121.5);
+        setEncoderTargetsStrafe(ticks, power);
     }
 
+    /*
     @Deprecated
     public void rotateWithEncoders(double degrees) {
         double inPerDegree = Math.PI * Math.sqrt(length*length + width*width) / 360;
@@ -271,6 +297,7 @@ public class HardwareHandler {
         int ticks = (int) (degrees / inPerTick * inPerDegree);
         setEncoderTargetsRotate(ticks);
     }
+     */
 
     public void stopDrivetrain() {
         setDriveTrainPowers(0, 0, 0, 0);
@@ -318,75 +345,136 @@ public class HardwareHandler {
                 - LINEAR SLIDES -
      */
 
-    public DcMotor getSlideMotor(){
-        return null;
+    public void moveSlidesToPreset(SlidePosition pos) {
+        int targetSlidePos;
+        switch (pos) {
+            case ONE_CONE:
+                targetSlidePos = ONE_CONE_POS;
+                break;
+            case TWO_CONE:
+                targetSlidePos = TWO_CONE_POS;
+                break;
+            case THREE_CONE:
+                targetSlidePos = THREE_CONE_POS;
+                break;
+            case FOUR_CONE:
+                targetSlidePos = FOUR_CONE_POS;
+                break;
+            case FIVE_CONE:
+                targetSlidePos = FIVE_CONE_POS;
+                break;
+            case SMALL_JUNCTION:
+                targetSlidePos = SMALL_JUNCTION_POS;
+                break;
+            case MEDIUM_JUNCTION:
+                targetSlidePos = MEDIUM_JUNCTION_POS;
+                break;
+            case LARGE_JUNCTION:
+                targetSlidePos = LARGE_JUNCTION_POS;
+                break;
+            default:
+                targetSlidePos = 0;
+                break;
+        }
+        linearSlide.setTargetPosition(-targetSlidePos);
+        linearSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        linearSlide.setPower(SLIDE_SPEED); // what power?
     }
 
-    public void moveSlides(double in) {
-
+    public int getNearestSlidePos(double position, boolean down) {
+        int higherIndex = 0;
+        for (int i = slidePositions.length - 1; i >= 0; i--) {
+            if (position > slidePositions[i] - SLIDE_TOLERANCE) {
+                higherIndex = i;
+                break;
+            }
+        }
+        if (down) higherIndex--;
+        if (higherIndex < 0) higherIndex = 0;
+        telemetry.addData("slides to", slidePosNames.get(higherIndex));
+        return slidePositions[higherIndex];
     }
 
-    public double[] updateSlides() {
-        int leftPos = linearSlideLeft.getCurrentPosition() - initSlidePos;
-        int rightPos = linearSlideRight.getCurrentPosition() - initSlidePos;
-        int diff = leftPos - rightPos;
-
-        double upLInput = upLLSPID.getInput(lsSetpoint - leftPos);
-        double upRInput = upRLSPID.getInput(lsSetpoint - rightPos);
-        double diffInput = diffLSPID.getInput(diff);
-
-        double kUL = (upLDis ? 1 : 0);
-        double kUR = (upRDis ? 1 : 0);
-        double kDiff = (diffDis ? 0.5 : 0);
-
-        moveSlidesWithPower(kUL*upLInput - kDiff*diffInput, kUR*upRInput + kDiff*diffInput);
-        return new double[]{kUL*upLInput - kDiff*diffInput, kUR*upRInput + kDiff*diffInput}; // returns for telemetry, would be better as a getter but im lazy
-    }
-
-    public void addSlideSetpoint(int ticks, boolean lowerLimit) {
-        final int maxPos = 5070;
+    /*public void addSlideSetpoint(int ticks, boolean lowerLimit) {
+        final int maxPos = 2500;
         int sum = lsSetpoint + ticks;
         if (sum <= maxPos && (sum >= 0 || !lowerLimit)) lsSetpoint = sum;
         if (prevLowerLimit && !lowerLimit) {
-            initSlidePos = linearSlideLeft.getCurrentPosition();
+            initSlidePos = linearSlide.getCurrentPosition();
             lsSetpoint = 0;
         }
         prevLowerLimit = lowerLimit;
+    }*/
+
+    public void moveSlide(double power, boolean useLimiter, Telemetry telemetry) {
+        boolean atLimit = areLinearSlideAtLimit(-linearSlide.getCurrentPosition(), -linearSlide.getPower())
+                          && useLimiter;
+        telemetry.addData("atLimit", atLimit);
+        telemetry.addData("slide power", linearSlide.getPower());
+        telemetry.addData("slide pos", linearSlide.getCurrentPosition());
+        //double floatingPower = -0.01; // tune floatingPower until slides hold their position at setPower(floatingPower)
+        if ((power == 0 && !prevHalt) || atLimit) { // rising edge of not moving
+            haltSlides(); // could
+            telemetry.addData("halting", true);
+        }
+        if (power != 0 && !atLimit) { // moving
+            if (linearSlide.getMode() != DcMotor.RunMode.RUN_USING_ENCODER) {
+                linearSlide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            }
+            power = Math.max(Math.min(power, 1), -1);
+            linearSlide.setVelocity(power * SLIDE_TICK_PER_POWER);
+        }
+        prevHalt = power == 0;
     }
 
-    public void setSlideSetpoint(int ticks) {
-        lsSetpoint = ticks;
+    public void moveSlidesHybrid(double power, boolean dpadUp, boolean dpadDown, boolean useLimiter, Telemetry telemetry    ) {
+        telemetry.addData("prevPower", prevPower);
+        telemetry.addData("ls target", linearSlide.getTargetPosition());
+        telemetry.addData("ls mode", linearSlide.getMode());
+        if(power != 0 || prevPower) {
+            moveSlide(power, useLimiter, telemetry);
+            telemetry.addData("driver controlled", true);
+            prevPower = true;
+        }
+        if (dpadUp || dpadDown) { // dpad supposed to be the rising edge
+            int newPos = getNearestSlidePos(-linearSlide.getCurrentPosition(), dpadDown);
+            linearSlide.setTargetPosition(-newPos);
+            linearSlide.setPower(SLIDE_SPEED); // have speed customization?
+            telemetry.addData("preset", true);
+            prevPower = false;
+        }
+        if (useLimiter && areLinearSlideAtLimit(-linearSlide.getCurrentPosition(), -linearSlide.getPower())) {
+            telemetry.addData("atLimit", true);
+            linearSlide.setPower(0);
+        }
     }
 
-    public int getLSSetpoint(){
-        return lsSetpoint;
-    }
-
-    public boolean areSlidesAtSetpoint(int setPrecision, int diffPrecision) {
-        int leftPos = linearSlideLeft.getCurrentPosition() - initSlidePos, rightPos = linearSlideRight.getCurrentPosition() - initSlidePos;
-        int diffLeft = Math.abs(leftPos-lsSetpoint), diffRight = Math.abs(rightPos-lsSetpoint);
-        int diffLR = Math.abs(leftPos-rightPos);
-        return diffLeft < setPrecision && diffRight < setPrecision && diffLR < diffPrecision;
-    }
-
-    public int[] getLSEncoderPosition(){return new int[] {linearSlideLeft.getCurrentPosition() - initSlidePos, linearSlideRight.getCurrentPosition() - initSlidePos};}
-
-    public void moveSlidesWithPower(double power1, double power2) {
-        /*if (linearSlideAtLimit(linearSlideLeft.getCurrentPosition(), power1)) linearSlideLeft.setPower(0);
-        else linearSlideLeft.setPower(power1);
-        linearSlideLeft.setPower(power1);
-
-        if (linearSlideAtLimit(linearSlideRight.getCurrentPosition(), power2)) linearSlideRight.setPower(0);
-        else linearSlideRight.setPower(power2);*/
-        linearSlideLeft.setPower(power1);
-        linearSlideRight.setPower(power2);
+    public void haltSlides() {
+        // hold position of slide (only run on rising edge)
+        if (linearSlide.getMode() != DcMotor.RunMode.RUN_TO_POSITION) {
+            linearSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        }
+        linearSlide.setTargetPosition(linearSlide.getCurrentPosition()); // use PID to maintain current position
+        linearSlide.setPower(0.01); // what power to use?
     }
 
     private boolean areLinearSlideAtLimit(int pos, double pow) {
-        return (pos > 5070 && pow > 0); //|| (pos < 0 && pow < 0);
+        return (pos > 3060 && pow > 0) || (pos < 0 && pow < 0);
     }
 
-    public void setLSPIDCoeff(double p, double i, double d, double id, double c, LSType type) { // scales PID coefficients by parameter
+    public void moveSlideNaive(double power) {
+        linearSlide.setPower(power + FLOATING_POWER);
+    }
+
+    public boolean slidesAtTarget() {
+        return Math.abs(linearSlide.getTargetPosition() - linearSlide.getCurrentPosition()) < SLIDE_TOLERANCE;
+    }
+
+    public DcMotor getSlideMotor() {
+        return linearSlide;
+    }
+
+    /*public void setLSPIDCoeff(double p, double i, double d, double id, double c, LSType type) { // scales PID coefficients by parameter
         if (type == LSType.UP_LEFT) {
             upLKP = p;
             upLKI = i;
@@ -411,97 +499,34 @@ public class HardwareHandler {
             dKC = c;
             diffLSPID = new PIDController(p, i ,d, id, c, 100);
         }
-    }
-
-    public double[] getLSPIDCoeff(LSType type) {
-        if (type == LSType.UP_LEFT) {
-            return new double[] {upLKP, upLKI, upLKD};
-        }
-        else if (type == LSType.UP_RIGHT) {
-            return new double[] {upRKP, upRKI, upRKD};
-        }
-        else {
-            return new double[] {dKP, dKI, dKD};
-        }
-    }
-
-    public void disableLS(LSType type, boolean status) {
-        if(type == LSType.UP_LEFT) {
-            upLDis = status;
-        }
-        else if(type == LSType.UP_RIGHT) {
-            upRDis = status;
-        }
-        else {
-            diffDis = status;
-        }
-    }
-
-    public void resetSlidePosition() {
-        if (linearSlideRight.getCurrentPosition() - initSlidePos > 500) {
-            linearSlideRight.setPower(-0.3);
-        }
-        else {
-            linearSlideRight.setPower(0);
-        }
-        if (linearSlideLeft.getCurrentPosition() - initSlidePos > 500) {
-            linearSlideLeft.setPower(-0.3);
-        }
-        else {
-            linearSlideLeft.setPower(0);
-        }
-    }
-
-    public void resetToDiffPosition() {
-        if (linearSlideRight.getCurrentPosition() - initSlidePos > 2000) {
-            linearSlideRight.setPower(-0.3);
-        }
-        else if (linearSlideRight.getCurrentPosition() - initSlidePos > 1500) {
-            linearSlideRight.setPower(0);
-        }
-        else {
-            linearSlideRight.setPower(0.3);
-        }
-        if (linearSlideLeft.getCurrentPosition() - initSlidePos > 500) {
-            linearSlideLeft.setPower(-0.3);
-        }
-        else {
-            linearSlideLeft.setPower(0);
-        }
-    }
+    }*/
 
     /*
                 - MISC -
                ~ TELEOP ~
      */
 
-    public void moveClawToMax() {
-        leftClawServo.setPosition(leftClawServo.MAX_POSITION);
-        rightClawServo.setPosition(rightClawServo.MAX_POSITION);
+    public double getClawSensorDistance(DistanceUnit unit) {
+        return clawSensor.getDistance(unit);
     }
 
-    public void moveCarousel(double power) { // in is positive
-        carousel.setPower(power);
+    public void moveClaw(double leftPosition, double rightPosition) {
+        leftClawServo.setPosition(leftPosition);
+        rightClawServo.setPosition(rightPosition);
     }
 
-    public void moveInputWheel(double power) {
-        input.setPower(power);
+    public void openClaw() {
+        moveClaw(0.1, 0.9);
+    }
+
+    public void closeClaw() {
+        moveClaw(0, 1);
     }
 
 
     /*
                 ~ AUTONOMOUS ~
      */
-
-
-    public double[] doesBarcodeDetect() { // should return in order left-most to right-most
-        return null;
-    }
-
-
-    public double getBarcodeDistance(DistanceUnit unit) {
-        return barcode.getDistance(unit);
-    }
 
 
     /*

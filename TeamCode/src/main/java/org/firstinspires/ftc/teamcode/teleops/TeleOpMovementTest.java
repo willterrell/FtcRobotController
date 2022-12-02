@@ -6,8 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 
-@TeleOp(name="Claw Test")
-public class ClawTest extends OpMode {
+@TeleOp(name="TeleOpMovementTest")
+public class TeleOpMovementTest extends OpMode {
     private HardwareHandler hardwareHandler;
     @Override
     public void init() {
@@ -16,6 +16,8 @@ public class ClawTest extends OpMode {
 
     @Override
     public void loop() {
-        //hardwareHandler.moveClawToMax();
+        double speed = (gamepad1.left_stick_x * gamepad1.left_stick_x + gamepad1.left_stick_y * gamepad1.left_stick_y + gamepad1.right_stick_x * gamepad1.right_stick_x); // magnitude squared
+        speed = Math.max(Math.min(1, speed), -1);
+        hardwareHandler.moveWithPower(gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, speed);
     }
 }

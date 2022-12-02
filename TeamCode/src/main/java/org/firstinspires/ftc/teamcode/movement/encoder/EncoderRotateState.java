@@ -5,6 +5,7 @@ import org.firstinspires.ftc.teamcode.HardwareHandler;
 
 import java.util.HashMap;
 
+@Deprecated
 public class EncoderRotateState extends AbState {
     private double degrees;
     private HardwareHandler hardwareHandler;
@@ -29,7 +30,7 @@ public class EncoderRotateState extends AbState {
 
     @Override
     public void run() {
-        hardwareHandler.rotateWithEncoders(degrees);
+        //hardwareHandler.rotateWithEncoders(degrees);
         hardwareHandler.setDriveTrainPowers(speed, speed, speed, speed);
     }
 }
