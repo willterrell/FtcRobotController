@@ -8,11 +8,11 @@ import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
 import java.util.HashMap;
 
-public class EncoderWaitState extends AbState {
+public class SlideWaitState extends AbState {
     private HardwareHandler hardwareHandler;
     private ElapsedTime timer;
     private TelemetryObj targetTele;
-    public EncoderWaitState(String name, HardwareHandler hardwareHandler) {
+    public SlideWaitState(String name, HardwareHandler hardwareHandler) {
         super(name, "next");
         this.hardwareHandler = hardwareHandler;
         targetTele = new TelemetryObj("Target distance:", hardwareHandler.getTargetDistance());
@@ -27,10 +27,10 @@ public class EncoderWaitState extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        if (hardwareHandler.driveTrainIsBusy()) {
+        if (hardwareHandler.slideBusy()) {
             return this;
         }
-        hardwareHandler.stopDrivetrain();
+        hardwareHandler.haltSlides();
         return nextStateMap.get("next");
     }
 

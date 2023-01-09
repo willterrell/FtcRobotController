@@ -3,8 +3,10 @@ package org.firstinspires.ftc.teamcode.utilities;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.movement.encoder.EncoderWaitState;
+import org.firstinspires.ftc.teamcode.movement.encoder.SlideWaitState;
 import org.firstinspires.ftc.teamcode.structures.SlidePosition;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -25,7 +27,7 @@ public class MoveSlidesState extends AbState {
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
         AbState next = getNextState("next");
-        EncoderWaitState wait = new EncoderWaitState("Wait", Arrays.asList(hardwareHandler.getSlideMotor()));
+        SlideWaitState wait = new SlideWaitState("Wait", hardwareHandler);
         wait.putNextState("next", next);
         return wait;
     }

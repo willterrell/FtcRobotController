@@ -1,9 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
-import android.transition.Slide;
-
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -20,15 +19,15 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.firstinspires.ftc.teamcode.movement.imu.SimpsonIntegrator;
-import org.firstinspires.ftc.teamcode.structures.LSType;
-import org.firstinspires.ftc.teamcode.structures.PIDController;
+import org.firstinspires.ftc.teamcode.roadrunner.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.structures.PIDFController;
 import org.firstinspires.ftc.teamcode.structures.SlidePosition;
-import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
+
+import kotlin.Unit;
 
 @Config
 public class HardwareHandler {
@@ -41,31 +40,37 @@ public class HardwareHandler {
     private SimpsonIntegrator integrator;
     private final int msPollInterval = 100;
     private final Servo leftClawServo, rightClawServo;
+    private ColorSensor colorSensor;
 
     private DcMotorEx linearSlide;
     private DistanceSensor clawSensor;
 
-    public static double FLOATING_POWER = 0;
-    public static int ONE_CONE_POS = 0, TWO_CONE_POS = 80, THREE_CONE_POS = 160, FOUR_CONE_POS = 240, FIVE_CONE_POS = 320,
+    private DistanceSensor leftPoleSensor;
+    private DistanceSensor rightPoleSensor;
+
+    public static int ONE_CONE_POS = 0, TWO_CONE_POS = 110, THREE_CONE_POS = 220, FOUR_CONE_POS = 330, FIVE_CONE_POS = 440,
                       SMALL_JUNCTION_POS = 1350, MEDIUM_JUNCTION_POS = 2195, LARGE_JUNCTION_POS = 3060;
     public static double SLIDE_TICK_PER_POWER = 2000;
-    public static double KLF = 1, KLR = 0.944, KRF = 0.934825, KRR = 0.8824748;
+    public static double KLF = 1, KLR = 0.9425, KRF = 0.9, KRR = 0.84825; //KLF = 1, KLR = 0.944, KRF = 0.934825, KRR = 0.8824748;
     public static double SLIDE_SPEED = 0.5;
     public static int SLIDE_TOLERANCE = 10;
+    public static double CLAW_OPEN = 0.15;
+    public static double lsP = 0.00325, lsI = 0, lsD = 0, lsG = 0.001;
 
-    private int[] slidePositions = new int[] {ONE_CONE_POS, TWO_CONE_POS, THREE_CONE_POS, FOUR_CONE_POS, FIVE_CONE_POS, SMALL_JUNCTION_POS, MEDIUM_JUNCTION_POS, LARGE_JUNCTION_POS};
+
+    private int[] slidePresetPositions = new int[] {ONE_CONE_POS, TWO_CONE_POS, THREE_CONE_POS, FOUR_CONE_POS, FIVE_CONE_POS, SMALL_JUNCTION_POS, MEDIUM_JUNCTION_POS, LARGE_JUNCTION_POS};
     private ArrayList<SlidePosition> slidePosNames = new ArrayList<SlidePosition>(Arrays.asList(SlidePosition.values()));
+    private int slidePositionIndex = 0;
+    private int targetSlidePos = 0;
+    private PIDFController slideController;
+
+    private final SampleMecanumDrive drive;
 
     /*
     TODO
      change wheel diameter and robot length
      */
-    private int lsSetpoint = 0;
-
-    private boolean prevLowerLimit = true;
-    private int initSlidePos = 0;
     private boolean prevHalt = false, prevPower = false;
-    private SlidePosition prevSlidePos;
 
     private DcMotor.RunMode currRunMode;
 
@@ -73,6 +78,8 @@ public class HardwareHandler {
     private double initAngle;
 
     private Telemetry telemetry;
+
+    private PIDFController rotationController;
 
     // TODO INITIAL ANGLE
 
@@ -86,6 +93,9 @@ public class HardwareHandler {
 
     public HardwareHandler(HardwareMap hardwareMap, Position currPos, double initAngle, Telemetry telemetry) {
         this.hardwareMap = hardwareMap;
+        this.drive = new SampleMecanumDrive(hardwareMap);
+
+
         // Motor initiations here
         leftFront = (DcMotorEx) hardwareMap.dcMotor.get("leftFront");
         leftRear = (DcMotorEx) hardwareMap.dcMotor.get("leftRear");
@@ -99,10 +109,13 @@ public class HardwareHandler {
 
         clawSensor = hardwareMap.get(DistanceSensor.class, "clawSensor");
 
+        colorSensor = hardwareMap.colorSensor.get("colorSensor");
+
+        leftPoleSensor = hardwareMap.get(DistanceSensor.class, "leftPoleSensor");
+        rightPoleSensor = hardwareMap.get(DistanceSensor.class, "rightPoleSensor");
+
         leftClawServo.scaleRange(-1, 1);
         rightClawServo.scaleRange(-1, 1);
-
-
 
         leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         leftRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -116,8 +129,9 @@ public class HardwareHandler {
         /*linearSlideLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         linearSlideRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);*/
 
-        rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftRear.setDirection(DcMotorSimple.Direction.REVERSE);
+        linearSlide.setDirection(DcMotorSimple.Direction.REVERSE);
 
         //linearSlide.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -127,6 +141,8 @@ public class HardwareHandler {
         rightRear.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //linearSlide.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        slideController = new PIDFController(lsP, lsI, lsD, 0, lsG, 0);
 
         // imu shit here, supposedly we need to calibrate it
         integrator = new SimpsonIntegrator(msPollInterval);
@@ -166,10 +182,19 @@ public class HardwareHandler {
             rightRear.setPower(0);
         }
         else {
-            leftFront.setPower((d - r - s) / total * speed * KLF);
-            leftRear.setPower((d - r + s) / total * speed * KLR); // 0.88 gotten from testing
-            rightFront.setPower((d + r + s) / total * speed * KRF);
-            rightRear.setPower((d + r - s) / total * speed * KRR);
+            leftFront.setPower((-d + r + s) / total * speed * KLF);
+            leftRear.setPower((-d + r - s) / total * speed * KLR); // 0.88 gotten from testing
+            rightFront.setPower((-d - r - s) / total * speed * KRF);
+            rightRear.setPower((-d - r + s) / total * speed * KRR);
+        }
+    }
+
+    public void avoidJunctions(boolean lfBumper, boolean lrBumper, boolean rfBumper, boolean rrBumper, double f, double s) {
+        if (!lfBumper && !lrBumper && !rfBumper && !rrBumper) return;
+        boolean goingForward = f > s;
+
+        if (lfBumper) {
+
         }
     }
 
@@ -181,8 +206,13 @@ public class HardwareHandler {
         return new double[]{leftFront.getPower(), leftRear.getPower(), rightFront.getPower(), rightRear.getPower()};
     }
 
-    public List<DcMotor> getMotors() {
-        return Arrays.asList(leftFront, leftRear, rightFront, rightRear);
+    public ArrayList<DcMotor> getMotors() {
+//        ArrayList<DcMotor> arr = new ArrayList<>();
+//        arr.add(leftFront);
+//        arr.add(leftRear);
+//        arr.add(rightFront);
+//        arr.add(rightRear);
+        return new ArrayList<>(Arrays.asList(leftFront, leftRear, rightFront, rightRear));
     }
 
 
@@ -249,10 +279,10 @@ public class HardwareHandler {
     public void setDriveTrainEncoderTargets(int tickLF, int tickLR, int tickRF, int tickRR) {
         setDriveTrainMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        leftFront.setTargetPosition(-(int)((tickLF + leftFront.getCurrentPosition()))); // 3.125 is for gearing
-        rightFront.setTargetPosition(-(int)((tickRF + rightFront.getCurrentPosition())));
-        leftRear.setTargetPosition(-(int)((tickLR + leftRear.getCurrentPosition())));
-        rightRear.setTargetPosition(-(int)((tickRR + rightRear.getCurrentPosition())));
+        leftFront.setTargetPosition((int)((tickLF + leftFront.getCurrentPosition()))); // 3.125 is for gearing
+        rightFront.setTargetPosition((int)((tickRF + rightFront.getCurrentPosition())));
+        leftRear.setTargetPosition((int)((tickLR + leftRear.getCurrentPosition())));
+        rightRear.setTargetPosition((int)((tickRR + rightRear.getCurrentPosition())));
 
 //        leftFront.setTargetPosition(-tickLF); // 3.125 is for gearing
 //        rightFront.setTargetPosition(-tickRF);
@@ -299,6 +329,8 @@ public class HardwareHandler {
     }
      */
 
+
+
     public void stopDrivetrain() {
         setDriveTrainPowers(0, 0, 0, 0);
         setDriveTrainMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -306,6 +338,10 @@ public class HardwareHandler {
 
     public double getTargetDistance() {
         return leftFront.getTargetPosition();
+    }
+
+    public SampleMecanumDrive getDrive() {
+        return drive;
     }
 
 
@@ -318,11 +354,14 @@ public class HardwareHandler {
         imu.startAccelerationIntegration(currPos, currVelocity, msPollInterval); // example had it with 1000ms?
     }
 
-    public double getIMUZAngle() { // gives current position as a double list formatted [x, y, r]
-        return initAngle + imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
+    public double getIMUZAngle() {
+        double rawAngle = -initAngle + imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
+        rawAngle %= 360;
+        if (rawAngle < 0) rawAngle += 360;
+        return rawAngle;
     }
 
-    public Position getIMUPosition() {
+    public Position getIMUPosition() { // gives current position as a double list formatted [x, y, r]
         Position pos = imu.getPosition();
         currPos = pos;
         if (pos.unit != DistanceUnit.INCH) pos.toUnit(DistanceUnit.INCH);
@@ -340,13 +379,43 @@ public class HardwareHandler {
         return integrator.getTelemetry();
     }
 
+    public void resetIMUZAngle() {
+        initAngle = getIMUZAngle();
+    }
+
+    public double getNearest90() {
+        double angle = getIMUZAngle();
+        // find first 90 degree angle that is greater than current angle
+        telemetry.addData("angle", angle);
+        double closestAngle = 0;
+        double closestDiff = 360;
+        for (int i = 0; i < 4; i++) {
+            double testAngle = 90 * i;
+            // consider angle that are congruent to test angle as well, for when testAngle = 0/360
+            double diff = Math.min(Math.abs(testAngle - angle), Math.min(Math.abs(testAngle + 360 - angle), Math.abs(testAngle - 360 - angle)));
+            if (diff < closestDiff) {
+                closestDiff = diff;
+                closestAngle = testAngle; // find the first angle that is greater than our angle
+            }
+        }
+        return closestAngle;
+    }
+
+    public double getNearest90AboveOrBelow(boolean below) {
+        double angle = getIMUZAngle();
+        double closest90 = getNearest90();
+        if (angle < closest90 && below) closest90 -= 90;
+        if (angle > closest90 && !below) closest90 += 90;
+        if (Math.abs(closest90 - angle) < 1) closest90 += (below) ? -90:90;
+        return closest90;
+    }
+
 
     /*
                 - LINEAR SLIDES -
      */
 
     public void moveSlidesToPreset(SlidePosition pos) {
-        int targetSlidePos;
         switch (pos) {
             case ONE_CONE:
                 targetSlidePos = ONE_CONE_POS;
@@ -376,23 +445,38 @@ public class HardwareHandler {
                 targetSlidePos = 0;
                 break;
         }
-        linearSlide.setTargetPosition(-targetSlidePos);
-        linearSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        linearSlide.setPower(SLIDE_SPEED); // what power?
+//        linearSlide.setTargetPosition(targetSlidePos);
+//        linearSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+//        linearSlide.setPower(SLIDE_SPEED); // what power?
     }
 
-    public int getNearestSlidePos(double position, boolean down) {
-        int higherIndex = 0;
-        for (int i = slidePositions.length - 1; i >= 0; i--) {
-            if (position > slidePositions[i] - SLIDE_TOLERANCE) {
-                higherIndex = i;
-                break;
+    public int getNearestSlidePosIndex(int position) {
+        int closestIndex = 0;
+        int closestDistance = 5000;
+        for (int i = slidePresetPositions.length - 1; i >= 0; i--) {
+            int distance = Math.abs(position - slidePresetPositions[i]);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = i;
             }
         }
-        if (down) higherIndex--;
-        if (higherIndex < 0) higherIndex = 0;
-        telemetry.addData("slides to", slidePosNames.get(higherIndex));
-        return slidePositions[higherIndex];
+        return closestIndex;
+    }
+
+    public int getNearestSlidePosAboveOrBelow(int position, boolean below) {
+        int nearestIndex = getNearestSlidePosIndex(position);
+        int nearestPosition = slidePresetPositions[nearestIndex];
+        if (position < nearestPosition && below) nearestIndex -= 1;
+        if (position > nearestPosition && !below) nearestIndex += 1;
+        nearestIndex = Math.max(Math.min(nearestIndex, slidePresetPositions.length - 1), 0);
+        nearestPosition = slidePresetPositions[nearestIndex];
+        if (Math.abs(nearestPosition - position) < SLIDE_TOLERANCE) nearestIndex += (below) ? -1 : 1;
+        nearestIndex = Math.max(Math.min(nearestIndex, slidePresetPositions.length - 1), 0);
+        return slidePresetPositions[nearestIndex];
+    }
+
+    public boolean slideBusy() {
+        return linearSlide.isBusy();
     }
 
     /*public void addSlideSetpoint(int ticks, boolean lowerLimit) {
@@ -407,13 +491,13 @@ public class HardwareHandler {
     }*/
 
     public void moveSlide(double power, boolean useLimiter, Telemetry telemetry) {
-        boolean atLimit = areLinearSlideAtLimit(-linearSlide.getCurrentPosition(), -linearSlide.getPower())
+        boolean atLimit = areLinearSlideAtLimit(linearSlide.getCurrentPosition(), -power - lsG)
                           && useLimiter;
         telemetry.addData("atLimit", atLimit);
         telemetry.addData("slide power", linearSlide.getPower());
         telemetry.addData("slide pos", linearSlide.getCurrentPosition());
         //double floatingPower = -0.01; // tune floatingPower until slides hold their position at setPower(floatingPower)
-        if ((power == 0 && !prevHalt) || atLimit) { // rising edge of not moving
+        if ((power == 0 || atLimit) && !prevHalt) { // rising edge of not moving
             haltSlides(); // could
             telemetry.addData("halting", true);
         }
@@ -422,12 +506,17 @@ public class HardwareHandler {
                 linearSlide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             }
             power = Math.max(Math.min(power, 1), -1);
-            linearSlide.setVelocity(power * SLIDE_TICK_PER_POWER);
+            linearSlide.setPower(-power - lsG);
         }
-        prevHalt = power == 0;
+        if (power == 0 || atLimit) {
+            updateSlides();
+        }
+        prevHalt = power == 0 || atLimit;
     }
 
-    public void moveSlidesHybrid(double power, boolean dpadUp, boolean dpadDown, boolean useLimiter, Telemetry telemetry    ) {
+    public void moveSlidesHybrid(double power, boolean dpadUp, boolean dpadDown, boolean useLimiter, boolean top, boolean bottom) {
+        boolean atLimit = areLinearSlideAtLimit(linearSlide.getCurrentPosition(), power + lsG)
+                && useLimiter;
         telemetry.addData("prevPower", prevPower);
         telemetry.addData("ls target", linearSlide.getTargetPosition());
         telemetry.addData("ls mode", linearSlide.getMode());
@@ -437,42 +526,75 @@ public class HardwareHandler {
             prevPower = true;
         }
         if (dpadUp || dpadDown) { // dpad supposed to be the rising edge
-            int newPos = getNearestSlidePos(-linearSlide.getCurrentPosition(), dpadDown);
-            linearSlide.setTargetPosition(-newPos);
-            linearSlide.setPower(SLIDE_SPEED); // have speed customization?
+            int newPos = getNearestSlidePosAboveOrBelow(linearSlide.getCurrentPosition(), dpadDown);
+            targetSlidePos = newPos;
             telemetry.addData("preset", true);
             prevPower = false;
         }
-        if (useLimiter && areLinearSlideAtLimit(-linearSlide.getCurrentPosition(), -linearSlide.getPower())) {
-            telemetry.addData("atLimit", true);
-            linearSlide.setPower(0);
+        if (top) {
+            targetSlidePos = slidePresetPositions[slidePresetPositions.length - 1];
+            prevPower = false;
+        }
+        if (bottom) {
+            targetSlidePos = slidePresetPositions[0];
+            prevPower = false;
+        }
+        if (power == 0) {
+            updateSlides();
         }
     }
 
     public void haltSlides() {
         // hold position of slide (only run on rising edge)
-        if (linearSlide.getMode() != DcMotor.RunMode.RUN_TO_POSITION) {
-            linearSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        }
-        linearSlide.setTargetPosition(linearSlide.getCurrentPosition()); // use PID to maintain current position
-        linearSlide.setPower(0.01); // what power to use?
+//        if (linearSlide.getMode() != DcMotor.RunMode.RUN_TO_POSITION) {
+//            linearSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+//        }
+//        linearSlide.setTargetPosition(linearSlide.getCurrentPosition()); // use PID to maintain current position
+//        linearSlide.setPower(0.01); // what power to use?
+        targetSlidePos = linearSlide.getCurrentPosition();
     }
 
     private boolean areLinearSlideAtLimit(int pos, double pow) {
         return (pos > 3060 && pow > 0) || (pos < 0 && pow < 0);
     }
 
-    public void moveSlideNaive(double power) {
-        linearSlide.setPower(power + FLOATING_POWER);
+    public void setSlidePower(double power) {
+        linearSlide.setPower(power);
     }
 
     public boolean slidesAtTarget() {
         return Math.abs(linearSlide.getTargetPosition() - linearSlide.getCurrentPosition()) < SLIDE_TOLERANCE;
     }
 
+    public void shiftSlidePosition(boolean dpadUp, boolean dpadDown, boolean fullUp, boolean fullDown) {
+        slidePositionIndex += ((dpadUp) ? 1 : 0) + ((dpadDown) ? -1 : 0);
+        slidePositionIndex %= slidePosNames.size();
+        if (slidePositionIndex < 0) slidePositionIndex += slidePosNames.size();
+        if (fullUp) {
+            slidePositionIndex = slidePosNames.size() - 1;
+        }
+        if (fullDown) {
+            slidePositionIndex = 0;
+        }
+        telemetry.addData("Slide Position", slidePosNames.get(slidePositionIndex));
+        moveSlidesToPreset(slidePosNames.get(slidePositionIndex));
+    }
+
+    public void updateSlides() {
+        double pos = linearSlide.getCurrentPosition();
+        if (Math.abs(pos) < SLIDE_TOLERANCE && Math.abs(targetSlidePos) < SLIDE_TOLERANCE) linearSlide.setPower(0);
+        else {
+            double error = targetSlidePos - pos;
+            double input = slideController.getInput(error);
+            linearSlide.setPower(input);
+        }
+    }
+
     public DcMotor getSlideMotor() {
         return linearSlide;
     }
+
+    public int getTargetSlidePos() {return linearSlide.getCurrentPosition();}
 
     /*public void setLSPIDCoeff(double p, double i, double d, double id, double c, LSType type) { // scales PID coefficients by parameter
         if (type == LSType.UP_LEFT) {
@@ -516,13 +638,28 @@ public class HardwareHandler {
     }
 
     public void openClaw() {
-        moveClaw(0.1, 0.9);
+        moveClaw(0.15, 0.895);
     }
 
     public void closeClaw() {
-        moveClaw(0, 1);
+        moveClaw(0.06, 0.975);
     }
 
+    public double[] getColorSensorReading() {
+        double[] reading = new double[3];
+        reading[0] = colorSensor.red();
+        reading[1] = colorSensor.blue();
+        reading[2] = colorSensor.green();
+        return reading;
+    }
+
+    public double getLeftPoleSensor(DistanceUnit unit) {
+        return leftPoleSensor.getDistance(unit);
+    }
+
+    public double getRightPoleSensor(DistanceUnit unit) {
+        return rightPoleSensor.getDistance(unit);
+    }
 
     /*
                 ~ AUTONOMOUS ~

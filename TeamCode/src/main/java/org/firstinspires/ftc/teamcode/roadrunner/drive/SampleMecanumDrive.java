@@ -1,5 +1,9 @@
 package org.firstinspires.ftc.teamcode.roadrunner.drive;
 
+import static org.firstinspires.ftc.teamcode.HardwareHandler.KLF;
+import static org.firstinspires.ftc.teamcode.HardwareHandler.KLR;
+import static org.firstinspires.ftc.teamcode.HardwareHandler.KRF;
+import static org.firstinspires.ftc.teamcode.HardwareHandler.KRR;
 import static org.firstinspires.ftc.teamcode.roadrunner.drive.opmode.DriveConstants.MAX_ACCEL;
 import static org.firstinspires.ftc.teamcode.roadrunner.drive.opmode.DriveConstants.MAX_ANG_ACCEL;
 import static org.firstinspires.ftc.teamcode.roadrunner.drive.opmode.DriveConstants.MAX_ANG_VEL;
@@ -53,8 +57,8 @@ import java.util.List;
  */
 @Config
 public class SampleMecanumDrive extends MecanumDrive {
-    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(0, 0, 0);
-    public static PIDCoefficients HEADING_PID = new PIDCoefficients(0, 0, 0);
+    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(16, 0, 0);
+    public static PIDCoefficients HEADING_PID = new PIDCoefficients(8, 0, 0);
 
     public static double LATERAL_MULTIPLIER = 1;
 
@@ -74,6 +78,8 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     private BNO055IMU imu;
     private VoltageSensor batteryVoltageSensor;
+
+    private Pose2d lastTrajEnd;
 
     public SampleMecanumDrive(HardwareMap hardwareMap) {
         super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
@@ -122,9 +128,6 @@ public class SampleMecanumDrive extends MecanumDrive {
         rightRear = hardwareMap.get(DcMotorEx.class, "rightRear");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
 
-        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
-
         motors = Arrays.asList(leftFront, leftRear, rightRear, rightFront);
 
         for (DcMotorEx motor : motors) {
@@ -144,11 +147,15 @@ public class SampleMecanumDrive extends MecanumDrive {
         }
 
         // TODO: reverse any motors using DcMotor.setDirection()
+        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftRear.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // TODO: if desired, use setLocalizer() to change the localization method
+        setLocalizer(new StandardTrackingWheelLocalizer(hardwareMap));
         // for instance, setLocalizer(new ThreeTrackingWheelLocalizer(...));
 
         trajectorySequenceRunner = new TrajectorySequenceRunner(follower, HEADING_PID);
+        lastTrajEnd = new Pose2d();
     }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
@@ -185,6 +192,7 @@ public class SampleMecanumDrive extends MecanumDrive {
     }
 
     public void followTrajectoryAsync(Trajectory trajectory) {
+        lastTrajEnd = trajectory.end();
         trajectorySequenceRunner.followTrajectorySequenceAsync(
                 trajectorySequenceBuilder(trajectory.start())
                         .addTrajectory(trajectory)
@@ -193,6 +201,7 @@ public class SampleMecanumDrive extends MecanumDrive {
     }
 
     public void followTrajectory(Trajectory trajectory) {
+        lastTrajEnd = trajectory.end();
         followTrajectoryAsync(trajectory);
         waitForIdle();
     }
@@ -223,6 +232,11 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     public boolean isBusy() {
         return trajectorySequenceRunner.isBusy();
+    }
+
+    public void breakFollowing() {
+        trajectorySequenceRunner.breakFollowing();
+        lastTrajEnd = getPoseEstimate();
     }
 
     public void setMode(DcMotor.RunMode runMode) {
@@ -289,10 +303,19 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     @Override
     public void setMotorPowers(double v, double v1, double v2, double v3) {
-        leftFront.setPower(v);
-        leftRear.setPower(v1);
-        rightRear.setPower(v2);
-        rightFront.setPower(v3);
+        leftFront.setPower(v * KLF);
+        leftRear.setPower(v1 * KLR);
+        rightRear.setPower(v2 * KRR);
+        rightFront.setPower(v3 * KRF);
+    }
+
+    public void setLastTrajEnd(Pose2d pose) {
+        lastTrajEnd = pose;
+    }
+
+    public void setPoseEstimateAndTrajEnd(Pose2d pose) {
+        setPoseEstimate(pose);
+        setLastTrajEnd(pose);
     }
 
     @Override
@@ -319,5 +342,9 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     public static TrajectoryAccelerationConstraint getAccelerationConstraint(double maxAccel) {
         return new ProfileAccelerationConstraint(maxAccel);
+    }
+
+    public Pose2d getLastTrajEnd() {
+        return lastTrajEnd;
     }
 }

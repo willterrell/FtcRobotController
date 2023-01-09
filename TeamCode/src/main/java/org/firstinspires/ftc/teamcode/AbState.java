@@ -37,7 +37,6 @@ public abstract class AbState { // this is basically a decorator pattern
         telesIncludingSub.addAll(teleArr);
         for (AbState state : subStates) {
             telesIncludingSub.add(new TelemetryObj("",""));
-            telesIncludingSub.add(new TelemetryObj("Name", state.getName()));
             telesIncludingSub.addAll(state.getTelemetries());
         }
         return telesIncludingSub;
@@ -47,6 +46,10 @@ public abstract class AbState { // this is basically a decorator pattern
         teleArr.add(tele);
     }
 
+    protected void addAllTeles(ArrayList<TelemetryObj> teles) {
+        teleArr.addAll(teles);
+    }
+
     protected void setSubStates(AbState... abStates){
         subStates = abStates;
     }
@@ -54,8 +57,8 @@ public abstract class AbState { // this is basically a decorator pattern
     public abstract void init(); // expected to be run in next
 
     public AbState next() {
-        for (String nextName : nextStateMap.keySet()) {
-            //if (nextStateMap.get(nextName) != null) TelemetryFactory.add(new TelemetryObj<>("Error: ", nextName + " key not found in " + name));
+        for (AbState possibleNext : nextStateMap.values()) {
+            // check if null?
         }
         AbState nextState = next(nextStateMap);
         if (!nextState.equals(this)) {

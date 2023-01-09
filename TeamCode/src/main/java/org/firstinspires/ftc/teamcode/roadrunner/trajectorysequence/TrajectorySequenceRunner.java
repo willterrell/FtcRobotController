@@ -199,6 +199,11 @@ public class TrajectorySequenceRunner {
         return driveSignal;
     }
 
+    public void breakFollowing() {
+        currentTrajectorySequence = null;
+        remainingMarkers.clear();
+    }
+
     private void draw(
             Canvas fieldOverlay,
             TrajectorySequence sequence, SequenceSegment currentSegment,

@@ -8,9 +8,8 @@ import org.firstinspires.ftc.teamcode.roadrunner.drive.SampleMecanumDrive;
 import java.util.HashMap;
 
 public class MoveWithRoadrunner extends AbState {
-    Trajectory trajectory;
-    SampleMecanumDrive drive;
-    WaitWithRoadrunner wait;
+    private Trajectory trajectory;
+    private SampleMecanumDrive drive;
 
     public MoveWithRoadrunner(String name, Trajectory trajectory, SampleMecanumDrive drive) {
         super(name, "next");
@@ -21,18 +20,16 @@ public class MoveWithRoadrunner extends AbState {
 
     @Override
     public void init() {
-        AbState next = this.getNextState("next");
-        wait = new WaitWithRoadrunner(name + " Wait", drive);
-        wait.putNextState("next", next);
+        drive.followTrajectoryAsync(trajectory);
     }
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        return wait;
+        if (drive.isBusy()) return this;
+        return getNextState("next");
     }
 
     @Override
     public void run() {
-        drive.followTrajectoryAsync(trajectory);
     }
 }

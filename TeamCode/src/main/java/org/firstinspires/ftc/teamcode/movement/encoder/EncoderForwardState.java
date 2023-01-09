@@ -26,7 +26,7 @@ public class EncoderForwardState extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        EncoderWaitState wait = new EncoderWaitState("Wait for forward", hardwareHandler.getMotors());
+        EncoderWaitState wait = new EncoderWaitState("Wait for forward", hardwareHandler);
         wait.putNextState("next", nextStateMap.get("next"));
         return wait;
     }

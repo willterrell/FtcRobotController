@@ -9,6 +9,10 @@ public class PlaceholderState extends AbState { // this state does nothing
         super("Placeholder");
     }
 
+    public PlaceholderState(String name) {
+        super(name);
+    }
+
     @Override
     public void init() {
 
