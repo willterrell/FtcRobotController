@@ -13,7 +13,7 @@ import java.util.Set;
 
 public abstract class AbState { // this is basically a decorator pattern
     protected String name;
-    private AbState[] subStates;
+    private ArrayList<AbState> subStates;
     private final HashMap<String, AbState> nextStateMap;
     private final ArrayList<TelemetryObj> teleArr;
     public AbState(String name, String ...nextStateName){
@@ -23,7 +23,7 @@ public abstract class AbState { // this is basically a decorator pattern
             nextStateMap.put(stateName, null); // this should be set with putNextState
         }
         teleArr = new ArrayList<TelemetryObj>();
-        subStates = new AbState[0];
+        subStates = new ArrayList<AbState>();
     }
 
     public String getName() {
@@ -34,6 +34,7 @@ public abstract class AbState { // this is basically a decorator pattern
         ArrayList<TelemetryObj> telesIncludingSub = new ArrayList<>();
         //telesIncludingSub.add(new TelemetryObj("Number of Substates", subStates.length));
         telesIncludingSub.add(new TelemetryObj("Name", name));
+        telesIncludingSub.add(new TelemetryObj("Type", this.getClass().getSimpleName()));
         telesIncludingSub.addAll(teleArr);
         for (AbState state : subStates) {
             telesIncludingSub.add(new TelemetryObj("",""));
@@ -50,8 +51,13 @@ public abstract class AbState { // this is basically a decorator pattern
         teleArr.addAll(teles);
     }
 
-    protected void setSubStates(AbState... abStates){
+    protected void setSubStates(ArrayList<AbState> abStates){
         subStates = abStates;
+    }
+
+    protected void setSubStates(AbState abState) {
+        subStates.clear();
+        subStates.add(abState);
     }
 
     public abstract void init(); // expected to be run in next

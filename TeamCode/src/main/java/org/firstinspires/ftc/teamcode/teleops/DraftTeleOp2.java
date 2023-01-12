@@ -89,7 +89,7 @@ public class DraftTeleOp2 extends OpMode {
         telemetry.addData("nearest90", nearest90);
 
         if (bumpers || y) {
-            if (bumpers) nearest90 = hardwareHandler.getNearest90AboveOrBelow(gamepad1.left_bumper); // turning with bumpers
+            if (bumpers) nearest90 = hardwareHandler.getNearest90AboveOrBelow(gamepad1.right_bumper); // turning with bumpers
             else nearest90 = hardwareHandler.getNearest90(); // aligning with y
             currState = new RotateWithIMU("autorotate", hardwareHandler, nearest90 - hardwareHandler.getIMUZAngle(), 0.3);
             currState.putNextState("next", new PlaceholderState());

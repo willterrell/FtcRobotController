@@ -17,7 +17,7 @@ import java.util.HashMap;
 public class CenterOnPoleState extends AbState {
     private HardwareHandler hardwareHandler;
     private SampleMecanumDrive drive;
-    public static double TOLERANCE = 0.2, VELOCITY = 0.1, ACCELERATION = 0.5, EMPTY_DISTANCE = 7.4, SEARCH_DISTANCE = 5, DISTANCE_FROM_POLE = 5.5;
+    public static double TOLERANCE = 0.2, VELOCITY = 0.1, ACCELERATION = 0.5, EMPTY_DISTANCE = 7.4, SEARCH_DISTANCE = 5, DISTANCE_FROM_POLE = 5;
     public static TrajectoryVelocityConstraint SLOW_VEL = SampleMecanumDrive.getVelocityConstraint(
             DriveConstants.MAX_VEL * VELOCITY, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH);
     public static TrajectoryAccelerationConstraint SLOW_ACC = SampleMecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL * ACCELERATION);
@@ -65,7 +65,7 @@ public class CenterOnPoleState extends AbState {
     public void run() {
         currState.run();
         AbState nextState = currState.next();
-        if (!nextState.getName().equals(currState.getName())) {
+        if (!nextState.equals(currState)) {
             setSubStates(nextState);
         }
         currState = nextState;
@@ -79,8 +79,8 @@ public class CenterOnPoleState extends AbState {
         Pose2d currPose = drive.getPoseEstimate();
         double currPoleX = currPose.getX() - xFromPole; // get coordinate
         double currPoleY = currPose.getY() - yFromPole;
-        double closestPoleX = Math.floor(currPoleX / 24) * 24;
-        double closestPoleY = Math.floor(currPoleY / 24) * 24;
-        return new Pose2d(closestPoleX + xFromPole, closestPoleY + yFromPole, angleFromPole);
+        double closestPoleX = Math.round(currPoleX / 24) * 24;
+        double closestPoleY = Math.round(currPoleY / 24) * 24;
+        return new Pose2d(closestPoleX + xFromPole, closestPoleY + yFromPole, Math.toRadians(robotAngle));
     }
 }

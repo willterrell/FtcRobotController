@@ -9,20 +9,27 @@ import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.opmode.DriveConstants;
+import org.firstinspires.ftc.teamcode.structures.SlidePosition;
+import org.firstinspires.ftc.teamcode.utilities.LockState;
+import org.firstinspires.ftc.teamcode.utilities.MoveSlidesState;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 @Config
 public class StartToHighJunction extends AbState {
-    public static double MIDDLE_X = 34.5, MIDDLE_Y = 12, MIDDLE_DEG = 180;
+    public static double MIDDLE_X = 39.5, MIDDLE_Y = 12, MIDDLE_DEG = 180;
     private Pose2d MIDDLE;
     public static double HIGH_X = 24, HIGH_Y = 8.5, HIGH_DEG = -90;
     private Pose2d HIGH_JUNCTION;
+    private HardwareHandler hardwareHandler;
     private SampleMecanumDrive drive;
     private AbState currState;
-    public StartToHighJunction(String name, SampleMecanumDrive drive) {
+    public StartToHighJunction(String name, HardwareHandler hardwareHandler) {
         super(name, "next");
-        this.drive = drive;
+        this.hardwareHandler = hardwareHandler;
+        this.drive = hardwareHandler.getDrive();
     }
 
     @Override
@@ -38,9 +45,11 @@ public class StartToHighJunction extends AbState {
                         SampleMecanumDrive.getAccelerationConstraint(0.5 * DriveConstants.MAX_ACCEL))
                 .build();
         MoveWithRoadrunner move1 = new MoveWithRoadrunner("startToMiddle", traj1, drive);
-        MoveWithRoadrunner move2 = new MoveWithRoadrunner("startToMiddle", traj2, drive);
-        move1.putNextState("next", move2);
-        move2.putNextState("next", getNextState("next"));
+        MoveWithRoadrunner move2 = new MoveWithRoadrunner("middleToHigh", traj2, drive);
+        MoveSlidesState slides = new MoveSlidesState("slideToHigh", hardwareHandler, SlidePosition.LARGE_JUNCTION);
+        LockState lock = new LockState("middleToHigh + slideToHigh", new ArrayList<>(Arrays.asList(move2, slides)));
+        move1.putNextState("next", lock);
+        lock.putNextState("next", getNextState("next"));
         currState = move1;
         currState.init();
     }

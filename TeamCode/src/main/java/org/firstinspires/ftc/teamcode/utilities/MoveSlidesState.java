@@ -26,10 +26,8 @@ public class MoveSlidesState extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        AbState next = getNextState("next");
-        SlideWaitState wait = new SlideWaitState("Wait", hardwareHandler);
-        wait.putNextState("next", next);
-        return wait;
+        if (hardwareHandler.slidesAtPosition()) return getNextState("next");
+        return this;
     }
 
     @Override

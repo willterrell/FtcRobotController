@@ -29,19 +29,11 @@ public class CenteringTest extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         ElapsedTime timer = new ElapsedTime();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
         HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, telemetry);
-        SampleMecanumDrive drive = hardwareHandler.getDrive();
-        CenterY centerY = new CenterY("centerY", hardwareHandler, 5, noCones, false);
-        CenterY centerY2 = new CenterY("centerY2", hardwareHandler, 5 * 2, noCones, true);
-        CenterX centerX = new CenterX("centerX", hardwareHandler, noCones);
-        //findPole.putNextState("next", centerX);
-        //findPole.putNextState("error", getNextState("next")); // if we cant find the pole, just do what we were going to do anyway
-        centerY.putNextState("next", centerX);
-        centerY2.putNextState("next", centerX);
-        centerY.putNextState("error", centerY2);
-        centerY2.putNextState("error", new PlaceholderState("error"));
-        centerX.putNextState("next", new PlaceholderState("next"));
-        AbState currState = centerY;
+        hardwareHandler.setDrive(drive);
+        CenterOnPoleState center = new CenterOnPoleState("center", hardwareHandler, false, true);
+        AbState currState = center;
         currState.init();
         telemetry.addData("init", timer.time());
         telemetry.update();

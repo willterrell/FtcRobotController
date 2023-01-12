@@ -1,19 +1,24 @@
 package org.firstinspires.ftc.teamcode.utilities.CenterOnPole;
 
+import static org.firstinspires.ftc.teamcode.utilities.CenterOnPole.CenterOnPoleState.ACCELERATION;
 import static org.firstinspires.ftc.teamcode.utilities.CenterOnPole.CenterOnPoleState.EMPTY_DISTANCE;
 import static org.firstinspires.ftc.teamcode.utilities.CenterOnPole.CenterOnPoleState.SLOW_ACC;
 import static org.firstinspires.ftc.teamcode.utilities.CenterOnPole.CenterOnPoleState.SLOW_VEL;
+import static org.firstinspires.ftc.teamcode.utilities.CenterOnPole.CenterOnPoleState.VELOCITY;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.movement.roadrunner.MoveWithRoadrunner;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.roadrunner.drive.opmode.DriveConstants;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 
 import java.util.HashMap;
@@ -23,6 +28,9 @@ public class CenterY extends AbState {
     private HardwareHandler hardwareHandler;
     private SampleMecanumDrive drive;
     private double leftDistance, distance, prevDistance, prev2Distance;
+    private TrajectoryVelocityConstraint SLOW_VEL = SampleMecanumDrive.getVelocityConstraint(
+            DriveConstants.MAX_VEL * VELOCITY, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH);
+    private TrajectoryAccelerationConstraint SLOW_ACC = SampleMecanumDrive.getAccelerationConstraint(DriveConstants.MAX_ACCEL * ACCELERATION);
     private AbState currState;
     private double searchDistance;
     private boolean noCones, backFirst;
@@ -76,7 +84,7 @@ public class CenterY extends AbState {
     public void run() {
         currState.run();
         AbState nextState = currState.next();
-        if (!nextState.getName().equals(currState.getName())) {
+        if (!nextState.equals(currState)) {
             setSubStates(nextState);
         }
         currState = nextState;

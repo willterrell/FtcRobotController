@@ -64,7 +64,7 @@ public class HardwareHandler {
     private int targetSlidePos = 0;
     private PIDFController slideController;
 
-    private final SampleMecanumDrive drive;
+    private SampleMecanumDrive drive;
 
     /*
     TODO
@@ -93,8 +93,6 @@ public class HardwareHandler {
 
     public HardwareHandler(HardwareMap hardwareMap, Position currPos, double initAngle, Telemetry telemetry) {
         this.hardwareMap = hardwareMap;
-        this.drive = new SampleMecanumDrive(hardwareMap);
-
 
         // Motor initiations here
         leftFront = (DcMotorEx) hardwareMap.dcMotor.get("leftFront");
@@ -344,6 +342,8 @@ public class HardwareHandler {
         return drive;
     }
 
+    public void setDrive(SampleMecanumDrive drive) {this.drive = drive;}
+
 
     /*
                 - IMU -
@@ -355,7 +355,7 @@ public class HardwareHandler {
     }
 
     public double getIMUZAngle() {
-        double rawAngle = -initAngle + imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
+        double rawAngle = initAngle + imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
         rawAngle %= 360;
         if (rawAngle < 0) rawAngle += 360;
         return rawAngle;
@@ -590,6 +590,10 @@ public class HardwareHandler {
         }
     }
 
+    public boolean slidesAtPosition() {
+        return Math.abs(linearSlide.getCurrentPosition() - targetSlidePos) < SLIDE_TOLERANCE;
+    }
+
     public DcMotor getSlideMotor() {
         return linearSlide;
     }
@@ -638,11 +642,11 @@ public class HardwareHandler {
     }
 
     public void openClaw() {
-        moveClaw(0.15, 0.895);
+        moveClaw(0.14, 0.88);
     }
 
     public void closeClaw() {
-        moveClaw(0.06, 0.975);
+        moveClaw(0.05, .951);
     }
 
     public double[] getColorSensorReading() {
