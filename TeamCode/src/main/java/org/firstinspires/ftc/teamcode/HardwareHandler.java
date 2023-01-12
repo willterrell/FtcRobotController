@@ -114,6 +114,9 @@ public class HardwareHandler {
         this.initAngle = initAngle;
     }
 
+    public double[] getPylonSensorReadings(){
+        return null;
+    }
 
     /*
                 - DRIVETRAIN -
