@@ -1,12 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -28,16 +28,16 @@ public class HardwareHandler {
     private final DcMotorEx rightFront;
     private final DcMotorEx leftRear;
     private final DcMotorEx rightRear;
+    private final DcMotor linearSlideLeft;
+    private final DcMotor linearSlideRight;
+    private final DcMotor carousel;
+    private final DcMotor input;
+    private final ColorSensor colorSensor;
+    private final DistanceSensor barcode;
     private BNO055IMU imu;
     private SimpsonIntegrator integrator;
     private final int msPollInterval = 100;
-    private final Servo leftClawServo, rightClawServo;
 
-    private DcMotor linearSlideLeft;
-    private DcMotor linearSlideRight;
-    private DcMotor carousel;
-    private DcMotor input;
-    private DistanceSensor barcode;
 
     /*
     TODO
@@ -75,21 +75,31 @@ public class HardwareHandler {
         rightFront = (DcMotorEx) hardwareMap.dcMotor.get("rightFront");
         rightRear = (DcMotorEx) hardwareMap.dcMotor.get("rightRear");
 
-        leftClawServo = hardwareMap.servo.get("leftClawServo");
-        rightClawServo = hardwareMap.servo.get("rightClawServo");
-
-
+        linearSlideLeft = hardwareMap.dcMotor.get("linearSlideLeft");
+        linearSlideRight = hardwareMap.dcMotor.get("linearSlideRight");
+        carousel = hardwareMap.dcMotor.get("carousel");
+        input = hardwareMap.dcMotor.get("scoop");
+        barcode = hardwareMap.get(DistanceSensor.class, "barcode");
+        colorSensor = hardwareMap.get(ColorSensor.class, "color");
 
         leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         leftRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightRear.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        linearSlideLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        linearSlideRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        linearSlideLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        linearSlideRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        input.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         /*linearSlideLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         linearSlideRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);*/
 
         rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
         rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
+        linearSlideLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        input.setDirection(DcMotorSimple.Direction.REVERSE);
+        carousel.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // imu shit here, supposedly we need to calibrate it
         integrator = new SimpsonIntegrator(msPollInterval);
@@ -114,15 +124,23 @@ public class HardwareHandler {
         this.initAngle = initAngle;
     }
 
-    public double[] getPylonSensorReadings(){
-        return null;
-    }
 
     /*
                 - DRIVETRAIN -
                   ~ TELEOP ~
      */
+    public static double getDistanceSensorReading() {
+        double distanceReading = DistanceSensor distance;
 
+    }
+
+    public static double[] getColorSensorReading() {
+        double[] reading = new double[3];
+        reading[0] = colorSensor.red();
+        reading[1] = colorSensor.blue();
+        reading[2] = colorSensor.green();
+        return reading;
+    }
 
     public void moveWithVelocity(double d, double r, double s, double speed) { // d : linear movement, r : rotational movement, s : speed (0-1); r is signed with CCW as positive
         //assert (speed <= 1 && speed >= 0): "Speed must be between 0 and 1";
@@ -321,14 +339,6 @@ public class HardwareHandler {
                 - LINEAR SLIDES -
      */
 
-    public DcMotor getSlideMotor(){
-        return null;
-    }
-
-    public void moveSlides(double in) {
-
-    }
-
     public double[] updateSlides() {
         int leftPos = linearSlideLeft.getCurrentPosition() - initSlidePos;
         int rightPos = linearSlideRight.getCurrentPosition() - initSlidePos;
@@ -478,10 +488,6 @@ public class HardwareHandler {
                ~ TELEOP ~
      */
 
-    public void moveClawToMax() {
-        leftClawServo.setPosition(leftClawServo.MAX_POSITION);
-        rightClawServo.setPosition(rightClawServo.MAX_POSITION);
-    }
 
     public void moveCarousel(double power) { // in is positive
         carousel.setPower(power);
