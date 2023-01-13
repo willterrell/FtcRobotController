@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.teleops;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Size;
 import org.openftc.easyopencv.OpenCvPipeline;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -17,8 +19,60 @@ import org.openftc.easyopencv.OpenCvWebcam;
 import org.opencv.core.Core;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class OpenCV_Test extends OpenCvPipeline{
+    Telemetry t;
+    Mat mat = new Mat();
+    Mat thresholdMat = new Mat();
+    Mat morphedThreshold = new Mat();
+
+    //Yellow
+    Scalar lowHSV = new Scalar(20, 100, 100);
+    Scalar highHSV = new Scalar(30, 255, 255);
+
+    // morphology
+    Mat erodeElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3));
+    Mat dilateElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(6, 6));
+
+    OpenCV_Test(Telemetry t) { this.t = t;}
+
+
+    @Override
+    public Mat processFrame(Mat input)
+    {
+        //This turns the image to HSV the thersholds the image
+        Imgproc.cvtColor(input, mat, Imgproc.COLOR_BGR2HSV);
+        Core.inRange(mat, lowHSV, highHSV, mat);
+        //morphMask(mat, morphedThreshold);
+
+        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(mat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+        for (int i = 0; i < contours.size(); i++) {
+            //Rect boundRect = Imgproc.boundingRect(contours);
+           // double centerX = boundRect.x + (boundRect.width / 2);
+            //double centerY = boundRect.y + (boundRect.height / 2);
+
+            Imgproc.drawContours(mat, contours, i, new Scalar(255, 255, 255), -1);
+        }
+        return mat;
+    }
+
+    void morphMask(Mat input, Mat output)
+    {
+        /*
+         * Apply some erosion and dilation for noise reduction
+         */
+
+        Imgproc.erode(input, output, erodeElement);
+        Imgproc.erode(output, output, erodeElement);
+
+        Imgproc.dilate(output, output, dilateElement);
+        Imgproc.dilate(output, output, dilateElement);
+    }
+
+}/**
     Telemetry t;
     Mat mat = new Mat();
 
@@ -47,11 +101,11 @@ public class OpenCV_Test extends OpenCvPipeline{
         'purple': [[158, 255, 255], [129, 50, 70]],
         'orange': [[24, 255, 255], [10, 50, 70]],
         'gray': [[180, 18, 230], [0, 0, 40]]}
-         **/
-        Scalar lowHSV = new Scalar(90, 50, 70);
-        Scalar highHSV = new Scalar(128,255,255);
-        //Scalar lowHSV = new Scalar(23,50,70);
-        //Scalar highHSV = new Scalar(32,255,255);
+
+        //Scalar lowHSV = new Scalar(90, 50, 70);
+        //Scalar highHSV = new Scalar(128,255,255);
+        Scalar lowHSV = new Scalar(20, 100, 100);
+        Scalar highHSV = new Scalar(30, 255, 255);
 
         Core.inRange(mat, lowHSV, highHSV, mat);
 
@@ -65,11 +119,11 @@ public class OpenCV_Test extends OpenCvPipeline{
         t.addData("center percentage:", Math.round(leftValue * 100) + "%");
 
         Imgproc.cvtColor(mat, mat, Imgproc.COLOR_GRAY2RGB);
-
+        t.update();
         return mat;
     }
+    **/
 
-}
 
 /**
 class SamplePipeline extends OpenCvPipeline{
