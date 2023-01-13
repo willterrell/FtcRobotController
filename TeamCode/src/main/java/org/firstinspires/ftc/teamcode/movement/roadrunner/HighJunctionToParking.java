@@ -50,10 +50,9 @@ public class HighJunctionToParking extends AbState {
                 .build();
         MoveWithRoadrunner move1 = new MoveWithRoadrunner("startToMiddle", traj1, drive);
         MoveSlidesState slide = new MoveSlidesState("slideToDown", hardwareHandler, SlidePosition.ONE_CONE);
-        LockState lock = new LockState("startToMiddle + slideToDown", new ArrayList<>(Arrays.asList(move1, slide)));
         MoveWithRoadrunner move2 = new MoveWithRoadrunner("startToMiddle", traj2, drive);
-        move1.putNextState("next", lock);
-        lock.putNextState("next", move2);
+        move1.putNextState("next", slide);
+        slide.putNextState("next", move2);
         move2.putNextState("next", getNextState("next"));
         currState = move1;
         currState.init();

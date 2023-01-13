@@ -15,7 +15,7 @@ public class RotationTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, new Position(), telemetry);
-        RotateWithIMU rotate = new RotateWithIMU("test rotate", hardwareHandler, 180, 0.3);
+        RotateWithIMU rotate = new RotateWithIMU("test rotate", hardwareHandler, 180);
         rotate.putNextState("next", new PlaceholderState());
         AbState currState = rotate;
         currState.init();

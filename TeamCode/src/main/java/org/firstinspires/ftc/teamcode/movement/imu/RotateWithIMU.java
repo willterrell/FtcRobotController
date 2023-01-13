@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.structures.PIDFController;
+import org.firstinspires.ftc.teamcode.structures.PosType;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
 import java.util.HashMap;
@@ -25,6 +26,7 @@ public class RotateWithIMU extends AbState {
     public static double ANGLE_ACCURACY = 1, SPEED_LIMIT = 0.1, TIME_WAIT = 100;
     private double targetAngle = ANGLE; // 0.02 0.001 0.006 0.075
     private double initAng;
+    private PosType posType;
 
     //TODO Look into feedforward pid
 
@@ -36,13 +38,19 @@ public class RotateWithIMU extends AbState {
         pidSpecificsTele = new TelemetryObj("PID Specifics: ");
         errorTele = new TelemetryObj("Error: ");
         angTele = new TelemetryObj("Angle: ");
+        posType = PosType.RELATIVE;
     }
 
-    public RotateWithIMU(String name, HardwareHandler hardwareHandler, double angle, double speed) {
+    public RotateWithIMU(String name, HardwareHandler hardwareHandler, double angle) {
         this(name, hardwareHandler);
         this.hardwareHandler = hardwareHandler;
         targetAngle = angle % 360;
         if (targetAngle < 0) targetAngle += 360;
+    }
+
+    public RotateWithIMU(String name, HardwareHandler hardwareHandler, double angle, PosType posType) {
+        this(name, hardwareHandler, angle);
+        this.posType = posType;
     }
 
     @Override
@@ -60,7 +68,9 @@ public class RotateWithIMU extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        double error = targetAngle - currAngle;
+        double error;
+        if (posType == PosType.RELATIVE) error = targetAngle - currAngle;
+        else error = targetAngle;
         if (Math.abs(targetAngle - currAngle) > 180) error -= 360 * Math.signum(error);
         boolean bool = Math.abs(error) <= ANGLE_ACCURACY;
         rising = bool && !prevRise;

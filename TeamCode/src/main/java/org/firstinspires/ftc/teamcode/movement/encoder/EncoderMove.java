@@ -1,13 +1,11 @@
 package org.firstinspires.ftc.teamcode.movement.encoder;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.movement.imu.RotateWithIMU;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
 import org.firstinspires.ftc.teamcode.structures.PosType;
-import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 
 import java.util.HashMap;
 
@@ -60,9 +58,9 @@ public class EncoderMove extends AbState {
         }
         angle -= angleTo;
 
-        RotateWithIMU rotateTo = new RotateWithIMU("RotateTo", hardwareHandler, angleTo, speed);
+        RotateWithIMU rotateTo = new RotateWithIMU("RotateTo", hardwareHandler, angleTo);
         EncoderForwardState moveTo = new EncoderForwardState("MoveTo", hardwareHandler, distanceTo, speed);
-        RotateWithIMU finalRotate = new RotateWithIMU("FinalRotate", hardwareHandler, angle, speed);
+        RotateWithIMU finalRotate = new RotateWithIMU("FinalRotate", hardwareHandler, angle);
 
         rotateTo.putNextState("next", moveTo);
         moveTo.putNextState("next", finalRotate);

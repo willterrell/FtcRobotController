@@ -17,6 +17,7 @@ import org.firstinspires.ftc.teamcode.movement.roadrunner.StartToHighJunction;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.structures.ParkingPosition;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
+import org.firstinspires.ftc.teamcode.structures.PosType;
 import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
 import org.firstinspires.ftc.teamcode.utilities.CenterOnPole.CenterOnPoleState;
 import org.firstinspires.ftc.teamcode.utilities.OpenClawState;
@@ -39,7 +40,7 @@ public class Comp2Auto extends LinearOpMode {
         CenterOnPoleState center1 = new CenterOnPoleState("center1", hardwareHandler, true, true);
         OpenClawState open = new OpenClawState("open", hardwareHandler);
         HighJunctionToParking parking = new HighJunctionToParking("parking", hardwareHandler, ParkingPosition.ONE);
-        RotateWithIMU finalRotate = new RotateWithIMU("align", hardwareHandler, 270, 0.1);
+        RotateWithIMU finalRotate = new RotateWithIMU("align", hardwareHandler, 0, PosType.ABSOLUTE);
 //        HighJunctionToConeStack highJunctionToConeStack = new HighJunctionToConeStack("coneStack", drive);
 //        CenterOnPoleState center2 = new CenterOnPoleState("center2", hardwareHandler, false, true);
 //        ConeStackToHighJunction coneStackToHighJunction = new ConeStackToHighJunction("highJunction2", drive);
