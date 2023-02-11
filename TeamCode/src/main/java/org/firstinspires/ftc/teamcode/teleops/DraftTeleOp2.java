@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.teleops;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
@@ -11,16 +12,19 @@ import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.movement.imu.RotateWithIMU;
+import org.firstinspires.ftc.teamcode.roadrunner.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.structures.PlaceholderState;
+import org.firstinspires.ftc.teamcode.structures.TelemetryObj;
+import org.firstinspires.ftc.teamcode.utilities.CenterOnPole.CenterOnPoleState;
 
 @Config
 @TeleOp(name="draftTeleOp2")
 public class DraftTeleOp2 extends OpMode {
     private HardwareHandler hardwareHandler;
     private boolean b, prevB = false, toggleB = false, a, prevA, toggleA, risingNearCone, prevNearCone;
-    private boolean x2, prevX2 = false, b2, prevB2 = false;
+    private boolean x2, prevX2 = false, b2, prevB2 = false, a2, y2, prevA2 = false, prevY2 = false;
     private boolean dpadDown, prevDpadDown = false, dpadUp, prevDpadUp = false;
-    private boolean bumpers, prevBumpers = false, autoRotate = false;
+    private boolean bumpers, prevBumpers = false, autoRotate = false, triggers, prevTriggers = false, lockOn = false;
     private boolean y, prevY = false;
     private Gamepad.RumbleEffect customRumble;
     private ElapsedTime timer;
@@ -28,10 +32,13 @@ public class DraftTeleOp2 extends OpMode {
     public static double SLIDE_SPEED_COEFF = 0.3, LEFT_FRONT_COEFF = 1, LEFT_REAR_COEFF = 1, RIGHT_FRONT_COEFF = 1, RIGHT_REAR_COEFF = 1;
     private double nearest90 = 0;
     private AbState currState;
+    private SampleMecanumDrive drive;
+    public static double A_COEFF = 0.8;
     @Override
     public void init() {
         hardwareHandler = new HardwareHandler(hardwareMap, new Position(), telemetry);
-
+        drive = new SampleMecanumDrive(hardwareMap);
+        hardwareHandler.setDrive(drive);
         customRumble = new Gamepad.RumbleEffect.Builder()
                 .addStep(1.0, 1.0, 500)
                 .build();
@@ -62,8 +69,17 @@ public class DraftTeleOp2 extends OpMode {
         b2 = gamepad2.b && !prevB2;
         prevB2 = gamepad2.b;
 
+        a2 = gamepad2.a && !prevA2;
+        prevA2 = gamepad2.a;
+
+        y2 = gamepad2.y && !prevY2;
+        prevY2 = gamepad2.y;
+
         bumpers = gamepad1.left_bumper || gamepad1.right_bumper && !prevBumpers;
         prevBumpers = gamepad1.left_bumper || gamepad1.right_bumper;
+
+        triggers = gamepad1.left_trigger > 0.5 || gamepad1.right_trigger > 0.5 && !prevTriggers;
+        prevTriggers = gamepad1.left_trigger > 0.5 || gamepad1.right_trigger > 0.5;
 
         y = gamepad1.y && !prevY;
         prevY = gamepad1.y;
@@ -80,7 +96,7 @@ public class DraftTeleOp2 extends OpMode {
         }
 
         double f = gamepad1.left_stick_y;
-        double r = gamepad1.right_stick_x;
+        double r = gamepad1.right_stick_x * 0.5 / 0.65;
         double s = gamepad1.left_stick_x;
 
         boolean manualMove = f != 0 || r != 0 || s != 0;
@@ -96,18 +112,32 @@ public class DraftTeleOp2 extends OpMode {
             currState.init();
             autoRotate = true;
         }
-        if (manualMove) autoRotate = false;
-        if (autoRotate) {
+        if (triggers) {
+            drive.setPoseEstimateAndTrajEnd(new Pose2d());
+            currState = new CenterOnPoleState("autorotate", hardwareHandler, false, gamepad1.left_trigger > 0.5);
+            currState.putNextState("next", new PlaceholderState());
+            currState.init();
+            lockOn = true;
+        }
+        if (manualMove) {
+            autoRotate = false;
+            lockOn = false;
+        }
+        if (autoRotate || lockOn) {
             currState.run();
             currState = currState.next();
+            drive.update();
+            for (TelemetryObj obj : currState.getTelemetries()) {
+                telemetry.addData(obj.getCaption(), obj.getContent());
+            }
             if (currState instanceof PlaceholderState) {
-                autoRotate = false;
+                manualMove = true;
                 gamepad1.runRumbleEffect(customRumble);
             }
         }
         else {
-            double c = 0.5;
-            if (toggleA) c = 1;
+            double c = 0.65;
+            if (toggleA) c = A_COEFF;
             if (gamepad1.x) c = 0.2;
             double speed = Math.max(Math.max(f * f, r * r), s * s) * c; // magnitude squared
             speed = Math.max(Math.min(c, speed), 0);
@@ -134,7 +164,7 @@ public class DraftTeleOp2 extends OpMode {
 //        hardwareHandler.updateSlide(0.3);
 //        hardwareHandler.shiftSlidePosition(dpadUp, dpadDown, x2, b2);
 //        hardwareHandler.updateSlides();
-        hardwareHandler.moveSlidesHybrid(0.3 * gamepad2.left_stick_y, dpadUp, dpadDown, !gamepad2.a, x2, b2);
+        hardwareHandler.moveSlidesHybrid(0.3 * gamepad2.left_stick_y, dpadUp, dpadDown, !gamepad2.a, y2, x2, a2, b2);
 //        telemetry.addData("dpadUp", dpadUp);
 //        telemetry.addData("dpadDown", dpadDown);
 

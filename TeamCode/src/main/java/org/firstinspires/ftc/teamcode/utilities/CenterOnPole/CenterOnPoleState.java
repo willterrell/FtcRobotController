@@ -35,14 +35,13 @@ public class CenterOnPoleState extends AbState {
     public void init() {
         //FindPole findPole = new FindPole("findPole", hardwareHandler, true);
         CenterY centerY = new CenterY("centerY", hardwareHandler, SEARCH_DISTANCE, noCones, false);
-        CenterY centerY2 = new CenterY("centerY2", hardwareHandler, SEARCH_DISTANCE * 2, noCones, true);
+        //CenterY centerY2 = new CenterY("centerY2", hardwareHandler, SEARCH_DISTANCE * 2, noCones, true);
         CenterX centerX = new CenterX("centerX", hardwareHandler, noCones);
         //findPole.putNextState("next", centerX);
         //findPole.putNextState("error", getNextState("next")); // if we cant find the pole, just do what we were going to do anyway
         centerY.putNextState("next", centerX);
-        centerY2.putNextState("next", centerX);
-        centerY.putNextState("error", centerY2);
-        centerY2.putNextState("error", new PlaceholderState("error"));
+        //centerY2.putNextState("next", centerX);
+        centerY.putNextState("error", new PlaceholderState("error"));
         centerX.putNextState("next", new PlaceholderState("next"));
         currState = centerY;
         currState.init();

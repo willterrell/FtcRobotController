@@ -32,10 +32,12 @@ public class CenteringTest extends LinearOpMode {
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
         HardwareHandler hardwareHandler = new HardwareHandler(hardwareMap, telemetry);
         hardwareHandler.setDrive(drive);
-        CenterOnPoleState center = new CenterOnPoleState("center", hardwareHandler, false, true);
+        CenterOnPoleState center = new CenterOnPoleState("center", hardwareHandler, false, noCones);
         AbState currState = center;
         currState.init();
         telemetry.addData("init", timer.time());
+        telemetry.addData("left", hardwareHandler.getRecordedLeftPoleSensor());
+        telemetry.addData("right", hardwareHandler.getRecordedRightPoleSensor());
         telemetry.update();
         waitForStart();
         double prevTime = timer.milliseconds();
@@ -47,6 +49,10 @@ public class CenteringTest extends LinearOpMode {
             }
             telemetry.addData("update", timer.milliseconds() - prevTime);
             prevTime = timer.milliseconds();
+            if (hardwareHandler.getRecordedLeftPoleSensor() < 10) {
+                telemetry.addData("left", hardwareHandler.getRecordedLeftPoleSensor());
+                telemetry.addData("right", hardwareHandler.getRecordedRightPoleSensor());
+            }
             telemetry.update();
             drive.update();
         }

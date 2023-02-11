@@ -9,6 +9,7 @@ import org.firstinspires.ftc.teamcode.AbState;
 import org.firstinspires.ftc.teamcode.HardwareHandler;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.drive.opmode.DriveConstants;
+import org.firstinspires.ftc.teamcode.structures.Side;
 import org.firstinspires.ftc.teamcode.structures.SlidePosition;
 import org.firstinspires.ftc.teamcode.utilities.LockState;
 import org.firstinspires.ftc.teamcode.utilities.MoveSlidesState;
@@ -19,26 +20,35 @@ import java.util.HashMap;
 
 @Config
 public class StartToHighJunction extends AbState {
-    public static double MIDDLE_X = 39.5, MIDDLE_Y = 12, MIDDLE_DEG = 180;
+    public static double MIDDLE_X = 36, MIDDLE_Y = 12, MIDDLE_DEG = 180;
+    public static double RIGHT_MIDDLE_X = -36, RIGHT_HIGH_X = -21;
     private Pose2d MIDDLE;
-    public static double HIGH_X = 24, HIGH_Y = 8.5, HIGH_DEG = -90;
+    public static double HIGH_X = 21, HIGH_Y = 8.5, HIGH_DEG = -90;
     private Pose2d HIGH_JUNCTION;
     private HardwareHandler hardwareHandler;
     private SampleMecanumDrive drive;
     private AbState currState;
-    public StartToHighJunction(String name, HardwareHandler hardwareHandler) {
+    private Side side;
+    public StartToHighJunction(String name, HardwareHandler hardwareHandler, Side side) {
         super(name, "next");
         this.hardwareHandler = hardwareHandler;
         this.drive = hardwareHandler.getDrive();
+        this.side = side;
     }
 
     @Override
     public void init() {
-        MIDDLE = new Pose2d(MIDDLE_X, MIDDLE_Y, Math.toRadians(MIDDLE_DEG));
+        if (side == Side.LEFT) {
+            MIDDLE = new Pose2d(MIDDLE_X, MIDDLE_Y, Math.toRadians(MIDDLE_DEG));
+            HIGH_JUNCTION = new Pose2d(HIGH_X, HIGH_Y, Math.toRadians(HIGH_DEG));
+        }
+        else {
+            MIDDLE = new Pose2d(RIGHT_MIDDLE_X, MIDDLE_Y, Math.toRadians(MIDDLE_DEG - 180));
+            HIGH_JUNCTION = new Pose2d(RIGHT_HIGH_X, HIGH_Y, Math.toRadians(HIGH_DEG + 180));
+        }
         Trajectory traj1 = drive.trajectoryBuilder(drive.getLastTrajEnd())
                 .lineToLinearHeading(MIDDLE)
                 .build();
-        HIGH_JUNCTION = new Pose2d(HIGH_X, HIGH_Y, Math.toRadians(HIGH_DEG));
         Trajectory traj2 = drive.trajectoryBuilder(traj1.end())
                 .lineToLinearHeading(HIGH_JUNCTION,
                         SampleMecanumDrive.getVelocityConstraint(0.5 * DriveConstants.MAX_VEL, 0.5 * DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH),

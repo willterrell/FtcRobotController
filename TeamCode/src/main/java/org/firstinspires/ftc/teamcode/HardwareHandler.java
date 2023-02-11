@@ -48,10 +48,12 @@ public class HardwareHandler {
     private DistanceSensor leftPoleSensor;
     private DistanceSensor rightPoleSensor;
 
+    public double recordedLeftPole, recordedRightPole;
+
     public static int ONE_CONE_POS = 0, TWO_CONE_POS = 110, THREE_CONE_POS = 220, FOUR_CONE_POS = 330, FIVE_CONE_POS = 440,
                       SMALL_JUNCTION_POS = 1350, MEDIUM_JUNCTION_POS = 2195, LARGE_JUNCTION_POS = 3060;
     public static double SLIDE_TICK_PER_POWER = 2000;
-    public static double KLF = 1, KLR = 0.9425, KRF = 0.9, KRR = 0.84825; //KLF = 1, KLR = 0.944, KRF = 0.934825, KRR = 0.8824748;
+    public static double KLF = 1, KLR = 0.95, KRF = 0.9, KRR = 0.855; //KLF = 1, KLR = 0.944, KRF = 0.934825, KRR = 0.8824748;
     public static double SLIDE_SPEED = 0.5;
     public static int SLIDE_TOLERANCE = 10;
     public static double CLAW_OPEN = 0.15;
@@ -184,6 +186,13 @@ public class HardwareHandler {
             leftRear.setPower((-d + r - s) / total * speed * KLR); // 0.88 gotten from testing
             rightFront.setPower((-d - r - s) / total * speed * KRF);
             rightRear.setPower((-d - r + s) / total * speed * KRR);
+
+            /*
+            d + r + s
+            d + r - s
+            d - r - s
+            d - r + s
+             */
         }
     }
 
@@ -514,7 +523,7 @@ public class HardwareHandler {
         prevHalt = power == 0 || atLimit;
     }
 
-    public void moveSlidesHybrid(double power, boolean dpadUp, boolean dpadDown, boolean useLimiter, boolean top, boolean bottom) {
+    public void moveSlidesHybrid(double power, boolean dpadUp, boolean dpadDown, boolean useLimiter, boolean top, boolean medium, boolean low, boolean bottom) {
         boolean atLimit = areLinearSlideAtLimit(linearSlide.getCurrentPosition(), power + lsG)
                 && useLimiter;
         telemetry.addData("prevPower", prevPower);
@@ -535,7 +544,15 @@ public class HardwareHandler {
             targetSlidePos = slidePresetPositions[slidePresetPositions.length - 1];
             prevPower = false;
         }
-        if (bottom) {
+        else if (medium) {
+            targetSlidePos = slidePresetPositions[slidePresetPositions.length - 2];
+            prevPower = false;
+        }
+        else if (low) {
+            targetSlidePos = slidePresetPositions[slidePresetPositions.length - 3];
+            prevPower = false;
+        }
+        else if (bottom) {
             targetSlidePos = slidePresetPositions[0];
             prevPower = false;
         }
@@ -658,11 +675,21 @@ public class HardwareHandler {
     }
 
     public double getLeftPoleSensor(DistanceUnit unit) {
-        return leftPoleSensor.getDistance(unit);
+        recordedLeftPole = leftPoleSensor.getDistance(unit);
+        return recordedLeftPole;
     }
 
     public double getRightPoleSensor(DistanceUnit unit) {
-        return rightPoleSensor.getDistance(unit);
+        recordedRightPole = rightPoleSensor.getDistance(unit);
+        return recordedRightPole;
+    }
+
+    public double getRecordedLeftPoleSensor() {
+        return recordedLeftPole;
+    }
+
+    public double getRecordedRightPoleSensor() {
+        return  recordedRightPole;
     }
 
     /*

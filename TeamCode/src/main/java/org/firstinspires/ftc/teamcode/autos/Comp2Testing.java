@@ -33,8 +33,8 @@ import java.util.Arrays;
 public class Comp2Testing extends LinearOpMode {
     public static double START_X = 24, START_Y = 4.5, START_DEG = 270;
     private Pose2d START = new Pose2d(START_X, START_Y, Math.toRadians(START_DEG));
-    public static double MIDDLE_X = 34.5, MIDDLE_Y = 12, MIDDLE_DEG = 180;
-    public static double HIGH_X = 24, HIGH_Y = 8.5, HIGH_DEG = -90;
+    public static double MIDDLE_X = 36, MIDDLE_Y = 12, MIDDLE_DEG = 180;
+    public static double HIGH_X = 17, HIGH_Y = 8.5, HIGH_DEG = -90;
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());

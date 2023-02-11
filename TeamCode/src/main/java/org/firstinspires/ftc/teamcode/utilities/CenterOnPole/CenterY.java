@@ -71,7 +71,7 @@ public class CenterY extends AbState {
 
     @Override
     public AbState next(HashMap<String, AbState> nextStateMap) {
-        if (distance > prevDistance || noCones && distance < EMPTY_DISTANCE) {
+        if ((distance > prevDistance || noCones) && distance < EMPTY_DISTANCE) {
             drive.breakFollowing();
             return getNextState("next");
         }
@@ -89,8 +89,9 @@ public class CenterY extends AbState {
         }
         currState = nextState;
         leftDistance = hardwareHandler.getLeftPoleSensor(DistanceUnit.INCH);
-        if (distance < EMPTY_DISTANCE) distance = (leftDistance + hardwareHandler.getRightPoleSensor(DistanceUnit.INCH));
-        else distance = leftDistance;
+        //if (distance < EMPTY_DISTANCE) distance = (leftDistance + hardwareHandler.getRightPoleSensor(DistanceUnit.INCH))/2;
+        //else distance = leftDistance;
+        distance = leftDistance;
         /*
         if (distance > prevDistance && prevDistance > prev2Distance && distance < EMPTY_DISTANCE) { // if we're increasing
             currState = currState.getNextState("next");
